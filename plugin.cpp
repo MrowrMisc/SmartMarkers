@@ -12,6 +12,7 @@ std::deque<RE::Actor*> recentlyKilledNeabyActors;
 // std::deque<std::uint32_t> availableQuestAliasIndexes;
 
 std::vector<RE::NiPointer<RE::TESObjectREFR>> actorSmartPointers;
+std::vector<SKSE::ModCallbackEvent>           sentModEvents;
 
 void OnGameLoad() {
     if (auto* quest = RE::TESForm::LookupByEditorID<RE::TESQuest>(QUEST_EDITOR_ID)) {
@@ -120,8 +121,11 @@ public:
 
                                 auto questAliasIndex = _nextQuestAliasIndex++;
 
-                                SKSE::ModCallbackEvent modEvent({"MP_WhereAreTheBodies_TrackActor", "", static_cast<float>(questAliasIndex), actor});
+                                Log("Sending mod event for actor: {}", actor->GetName());
+                                auto& modEvent =
+                                    sentModEvents.emplace_back(SKSE::ModCallbackEvent{"MP_WhereAreTheBodies_TrackActor", "", static_cast<float>(questAliasIndex), actor});
                                 SKSE::GetModCallbackEventSource()->SendEvent(&modEvent);
+                                Log("Sent mod event for actor: {}", actor->GetName());
                             }
                         }
                     }
