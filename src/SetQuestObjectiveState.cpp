@@ -25,7 +25,7 @@ void SetObjectiveState(RE::BGSQuestObjective* a_objective, RE::QUEST_OBJECTIVE_S
     //     return;
     // }
 
-    using func_t = decltype(&SetObjectiveState);
-    REL::Relocation<func_t> func{Offsets::Addresses::Native_SetObjectiveState};
-    return func(a_objective, a_state);
+    // using func_t = decltype(&SetObjectiveState);
+    // REL::Relocation<func_t> func{Offsets::Addresses::Native_SetObjectiveState};
+    // return func(a_objective, a_state);
 }
