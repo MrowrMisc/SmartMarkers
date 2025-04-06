@@ -13,12 +13,17 @@ function Initialize()
     RegisterForModEvent("MP_WhereAreTheBodies_TrackActor", "OnTrackActor")
 endFunction
 
-event OnTrackActor(string eventName, string strArg, float numArg, Form sender)
-    int objectiveNumber = numArg as int
-    string aliasName = "Body" + (objectiveNumber + 1)
-    Actor target = sender as Actor
+event OnTrackActor(string eventName, string referenceAliasName, float objectiveIdFloat, Form targetForm)
+    int objectiveId = objectiveIdFloat as int
+    Actor target = targetForm as Actor
+    
+    ReferenceAlias refAlias = GetOwningQuest().GetAliasByName(referenceAliasName) as ReferenceAlias
+    
+    if refAlias && target
+        refAlias.ForceRefTo(target)
 
-    ReferenceAlias refAlias = GetOwningQuest().GetAliasByName(aliasName) as ReferenceAlias
-    refAlias.ForceRefTo(target)
-    GetOwningQuest().SetObjectiveDisplayed(objectiveNumber, true)
+        if ! GetOwningQuest().IsObjectiveDisplayed(objectiveId)
+            GetOwningQuest().SetObjectiveDisplayed(objectiveId, true)
+        endIf
+    endIf
 endEvent

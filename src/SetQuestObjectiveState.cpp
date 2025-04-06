@@ -20,12 +20,12 @@ namespace Offsets {
 }
 
 void SetObjectiveState(RE::BGSQuestObjective* a_objective, RE::QUEST_OBJECTIVE_STATE a_state) {
-    // if (a_objective->state.any(a_state)) {
-    //     Log("Objective state already set to desired state");
-    //     return;
-    // }
+    if (a_objective->state.any(a_state)) {
+        Log("Objective state already set to desired state");
+        return;
+    }
 
-    // using func_t = decltype(&SetObjectiveState);
-    // REL::Relocation<func_t> func{Offsets::Addresses::Native_SetObjectiveState};
-    // return func(a_objective, a_state);
+    using func_t = decltype(&SetObjectiveState);
+    REL::Relocation<func_t> func{Offsets::Addresses::Native_SetObjectiveState};
+    return func(a_objective, a_state);
 }
