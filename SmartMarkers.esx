@@ -2,7 +2,7 @@
 <plugin version="0.7.4">
   <TES4 flags="0x00000000" id="00000000" day="0" month="0" lastUserID="0" currentUserID="0" version="44" unknown="0x0000">
     <HEDR>
-      <struct version="1.71000004" numRecords="2" nextObjectID="00004899" />
+      <struct version="1.71000004" numRecords="2" nextObjectID="0000535d" />
     </HEDR>
     <CNAM>DEFAULT</CNAM>
     <MAST>Skyrim.esm</MAST>
@@ -31,9 +31,72 @@
       <QSDT>0</QSDT>
       <QOBJ>1</QOBJ>
       <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias1</NNAM>
+      <NNAM>Objective One</NNAM>
       <QSTA>
-        <struct alias="1" flags="0x00000000" />
+        <struct alias="42" flags="0x00000000" />
+      </QSTA>
+      <CTDA>
+        <operator>0x00</operator>
+        <unknown0>0x00,0x00,0x00</unknown0>
+        <comparisonValueFloat>1</comparisonValueFloat>
+        <functionIndex>566</functionIndex>
+        <padding>0x00,0x00</padding>
+        <param1>0x0000002a</param1>
+        <param2>0x00000000</param2>
+        <runOnType>0</runOnType>
+        <reference>00000000</reference>
+        <unknown1>0xffffffff</unknown1>
+      </CTDA>
+      <QSTA>
+        <struct alias="43" flags="0x00000000" />
+      </QSTA>
+      <CTDA>
+        <operator>0x00</operator>
+        <unknown0>0x00,0x00,0x00</unknown0>
+        <comparisonValueFloat>1</comparisonValueFloat>
+        <functionIndex>566</functionIndex>
+        <padding>0x00,0x00</padding>
+        <param1>0x0000002b</param1>
+        <param2>0x00000000</param2>
+        <runOnType>0</runOnType>
+        <reference>00000000</reference>
+        <unknown1>0xffffffff</unknown1>
+      </CTDA>
+      <QSTA>
+        <struct alias="44" flags="0x00000000" />
+      </QSTA>
+      <CTDA>
+        <operator>0x00</operator>
+        <unknown0>0x00,0x00,0x00</unknown0>
+        <comparisonValueFloat>1</comparisonValueFloat>
+        <functionIndex>566</functionIndex>
+        <padding>0x00,0x00</padding>
+        <param1>0x0000002c</param1>
+        <param2>0x00000000</param2>
+        <runOnType>0</runOnType>
+        <reference>00000000</reference>
+        <unknown1>0xffffffff</unknown1>
+      </CTDA>
+      <QSTA>
+        <struct alias="45" flags="0x00000000" />
+      </QSTA>
+      <QSTA>
+        <struct alias="46" flags="0x00000000" />
+      </QSTA>
+      <QSTA>
+        <struct alias="47" flags="0x00000000" />
+      </QSTA>
+      <QSTA>
+        <struct alias="48" flags="0x00000000" />
+      </QSTA>
+      <QSTA>
+        <struct alias="49" flags="0x00000000" />
+      </QSTA>
+      <QSTA>
+        <struct alias="50" flags="0x00000000" />
+      </QSTA>
+      <QSTA>
+        <struct alias="51" flags="0x00000000" />
       </QSTA>
       <QOBJ>2</QOBJ>
       <FNAM>0</FNAM>
@@ -149,60 +212,59 @@
       <QSTA>
         <struct alias="37" flags="0x00000000" />
       </QSTA>
-      <QOBJ>30</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias21</NNAM>
-      <QSTA>
-        <struct alias="18" flags="0x00000000" />
-      </QSTA>
-      <QOBJ>31</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias22</NNAM>
-      <QOBJ>32</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias23</NNAM>
-      <QOBJ>33</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias24</NNAM>
-      <QOBJ>34</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias25</NNAM>
-      <QOBJ>35</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias26</NNAM>
-      <QOBJ>36</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias27</NNAM>
-      <QOBJ>37</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias28</NNAM>
-      <QOBJ>38</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias29</NNAM>
-      <QOBJ>39</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias30</NNAM>
-      <QOBJ>40</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias31</NNAM>
-      <QOBJ>41</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias32</NNAM>
-      <QOBJ>42</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias33</NNAM>
-      <QOBJ>43</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias34</NNAM>
-      <QOBJ>44</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias35</NNAM>
-      <QOBJ>45</QOBJ>
-      <FNAM>0</FNAM>
-      <NNAM>ReferenceAlias36</NNAM>
-      <ANAM>42</ANAM>
+      <ANAM>52</ANAM>
       <ALST>1</ALST>
       <ALID>ReferenceAlias1</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>42</ALST>
+      <ALID>ObjectiveOne1</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>51</ALST>
+      <ALID>ObjectiveOne1008</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>50</ALST>
+      <ALID>ObjectiveOne1007</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>49</ALST>
+      <ALID>ObjectiveOne1006</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>48</ALST>
+      <ALID>ObjectiveOne1005</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>47</ALST>
+      <ALID>ObjectiveOne1004</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>46</ALST>
+      <ALID>ObjectiveOne1003</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>45</ALST>
+      <ALID>ObjectiveOne1002</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>44</ALST>
+      <ALID>ObjectiveOne1001</ALID>
+      <FNAM>4242</FNAM>
+      <VTCK>00000000</VTCK>
+      <ALED />
+      <ALST>43</ALST>
+      <ALID>ObjectiveOne1000</ALID>
       <FNAM>4242</FNAM>
       <VTCK>00000000</VTCK>
       <ALED />
@@ -298,11 +360,6 @@
       <ALED />
       <ALST>37</ALST>
       <ALID>ReferenceAlias20</ALID>
-      <FNAM>4242</FNAM>
-      <VTCK>00000000</VTCK>
-      <ALED />
-      <ALST>18</ALST>
-      <ALID>ReferenceAlias21</ALID>
       <FNAM>4242</FNAM>
       <VTCK>00000000</VTCK>
       <ALED />
