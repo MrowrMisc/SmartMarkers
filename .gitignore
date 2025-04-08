@@ -2,3 +2,6 @@
 build
 compile_commands
 *.pex
+
+__pycache__
+*.py[cod]
