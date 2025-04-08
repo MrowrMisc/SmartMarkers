@@ -2,15 +2,15 @@
 name = "smartmarkers"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Mrowr Purr",email = "mrowr.purr@gmail.com"}
-]
-license = {text = "0BSD"}
+authors = [{ name = "Mrowr Purr", email = "mrowr.purr@gmail.com" }]
+license = { text = "0BSD" }
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-]
+dependencies = []
 
+[tool.pyright]
+typeCheckingMode = "strict"
+reportMissingImports = false
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin version="0.7.4">
-  <TES4 flags="0x00000000" id="00000000" day="0" month="0" lastUserID="0" currentUserID="0" version="44" unknown="0x0000">
+  <TES4 flags="0x00000000" id="00000000" day="0" month="0" lastUserID="0" currentUserID="0"
+    version="44" unknown="0x0000">
     <HEDR>
       <struct version="1.71000004" numRecords="2" nextObjectID="0000535d" />
     </HEDR>
@@ -9,8 +10,10 @@
     <DATA>0</DATA>
     <INTV>1</INTV>
   </TES4>
-  <GRUP label="QUST" groupType="0" day="135" month="50" lastUserID="0" currentUserID="0" unknown="0x00000000">
-    <QUST flags="0x00000000" id="01000d62" day="0" month="0" lastUserID="0" currentUserID="0" version="44" unknown="0x0000">
+  <GRUP label="QUST" groupType="0" day="135" month="50" lastUserID="0" currentUserID="0"
+    unknown="0x00000000">
+    <QUST flags="0x00000000" id="01000d62" day="0" month="0" lastUserID="0" currentUserID="0"
+      version="44" unknown="0x0000">
       <EDID>MP_SmartMarkers_Quest</EDID>
       <VMAD version="5" format="2">
         <script name="MP_SmartMarkers_Quest" status="0" />

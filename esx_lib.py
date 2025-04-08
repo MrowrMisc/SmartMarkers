@@ -1,92 +1,79 @@
 import sys
 import xml.etree.ElementTree as ET
-from typing import Dict
+from dataclasses import dataclass, field
+from typing import List, Optional, Union
 
 
-# Base classes to handle XML element representation
+@dataclass
 class ESXElement:
     """Base class for all ESX elements"""
 
-    def __init__(self, tag: str, attrib: Dict = None, text: str = None):
-        self.tag = tag
-        self.attrib = attrib or {}
-        self.text = text
-        self.elements = []  # Child elements in order
-        self.parent = None
+    tag: str
+    attrib: dict[str, str] = field(default_factory=dict)
+    text: Optional[str] = None
+    elements: List["ESXElement"] = field(default_factory=list)
+    parent: Optional["ESXElement"] = None
 
-    def append(self, element):
-        if isinstance(element, ESXElement):
-            element.parent = self
+    def append(self, element: "ESXElement") -> None:
+        element.parent = self
         self.elements.append(element)
 
-    def to_xml(self, parent=None):
+    def to_xml(self) -> ET.Element:
         """Convert to XML element"""
         element = ET.Element(self.tag, self.attrib)
         if self.text:
             element.text = self.text
 
         for child in self.elements:
-            if isinstance(child, ESXElement):
-                child_elem = child.to_xml(element)
-                element.append(child_elem)
-            elif isinstance(child, ET.Element):
-                element.append(child)
+            element.append(child.to_xml())
 
         return element
 
-    def find(self, tag):
+    def find(self, tag: str) -> Optional["ESXElement"]:
         """Find first child element with matching tag"""
-        for element in self.elements:
-            if isinstance(element, ESXElement) and element.tag == tag:
-                return element
-        return None
+        return next((e for e in self.elements if e.tag == tag), None)
 
-    def find_all(self, tag):
+    def find_all(self, tag: str) -> List["ESXElement"]:
         """Find all child elements with matching tag"""
-        return [e for e in self.elements if isinstance(e, ESXElement) and e.tag == tag]
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(tag='{self.tag}', attrib={self.attrib})"
+        return [e for e in self.elements if e.tag == tag]
 
 
+@dataclass
 class ESXPlugin(ESXElement):
     """Root plugin element"""
 
-    def __init__(self, version: str = "0.7.4"):
-        super().__init__("plugin", {"version": version})
-        self.tes4 = None
-        self.groups = []
+    version: str = "0.7.4"
+    tes4: Optional["ESXTES4"] = None
+    groups: List["ESXGroup"] = field(default_factory=list)
 
-    def add_tes4(self, tes4):
+    def add_tes4(self, tes4: "ESXTES4") -> None:
         self.tes4 = tes4
         self.append(tes4)
 
-    def add_group(self, group):
+    def add_group(self, group: "ESXGroup") -> None:
         self.groups.append(group)
         self.append(group)
 
 
+@dataclass
 class ESXRecord(ESXElement):
     """Base record class"""
 
-    def __init__(self, tag: str, attrib: Dict = None):
-        super().__init__(tag, attrib)
-        self.editor_id = None  # EDID value
+    editor_id: Optional[str] = None
 
-    def get_editor_id(self):
+    def get_editor_id(self) -> Optional[str]:
         """Get the editor ID if present"""
         edid = self.find("EDID")
-        return edid.text if edid and edid.text else None
+        return edid.text if edid else None
 
 
+@dataclass
 class ESXTES4(ESXRecord):
     """TES4 header record"""
 
-    def __init__(self, attrib: Dict = None):
-        super().__init__("TES4", attrib)
-        self.masters = []
+    masters: List[str] = field(default_factory=list)
 
-    def add_master(self, master_name):
+    def add_master(self, master_name: str) -> None:
         mast = ESXElement("MAST", text=master_name)
         data = ESXElement("DATA", text="0")
         self.append(mast)
@@ -94,110 +81,101 @@ class ESXTES4(ESXRecord):
         self.masters.append(master_name)
 
 
+@dataclass
 class ESXGroup(ESXElement):
     """GRUP element"""
 
-    def __init__(self, label: str, group_type: str, attrib: Dict = None):
-        attrib = attrib or {}
-        attrib["label"] = label
-        attrib["groupType"] = group_type
-        super().__init__("GRUP", attrib)
-        self.records = []
+    label: str = field(default="")
+    group_type: str = field(default="")
+    attrib: dict[str, str] = field(default_factory=dict)
+    records: List[ESXRecord] = field(default_factory=list)
 
-    def add_record(self, record):
+    def __post_init__(self) -> None:
+        self.attrib.update({"label": self.label, "groupType": self.group_type})
+        super().__init__("GRUP", self.attrib)
+
+    def add_record(self, record: ESXRecord) -> None:
         self.records.append(record)
         self.append(record)
 
 
+@dataclass
 class ESXQuest(ESXRecord):
     """QUST record"""
 
-    def __init__(self, attrib: Dict = None):
-        super().__init__("QUST", attrib)
-        self.objectives = []
-        self.aliases = []
-        self.stages = []
-        self.full_name = None
-        self.script = None
-        self.priority = None
-        self.quest_flags = None
+    objectives: List["ESXObjective"] = field(default_factory=list)
+    aliases: List["ESXAlias"] = field(default_factory=list)
+    stages: List["ESXElement"] = field(default_factory=list)
+    full_name: Optional[str] = None
+    script: Optional[str] = None
+    priority: Optional[int] = None
+    quest_flags: Optional[str] = None
 
-    def add_objective(self, objective):
+    def add_objective(self, objective: "ESXObjective") -> None:
         self.objectives.append(objective)
 
-    def add_alias(self, alias):
+    def add_alias(self, alias: "ESXAlias") -> None:
         self.aliases.append(alias)
 
-    def add_stage(self, stage):
+    def add_stage(self, stage: ESXElement) -> None:
         self.stages.append(stage)
 
 
+@dataclass
 class ESXObjective:
     """Quest objective representation"""
 
-    def __init__(self, index, name, flags=0):
-        self.index = index
-        self.name = name
-        self.flags = flags
-        self.targets = []  # List of target aliases and conditions
+    index: int
+    name: str
+    flags: int = 0
+    targets: List[dict[str, Union[int, str, List["ESXCondition"]]]] = field(
+        default_factory=list
+    )
 
-    def add_target(self, alias_id, flags=0, conditions=None):
+    def add_target(
+        self,
+        alias_id: int,
+        flags: int = 0,
+        conditions: Optional[List["ESXCondition"]] = None,
+    ) -> None:
         self.targets.append(
             {"alias": alias_id, "flags": flags, "conditions": conditions or []}
         )
 
-    def __repr__(self):
-        return f"Objective({self.index}, '{self.name}', {len(self.targets)} targets)"
 
-
+@dataclass
 class ESXAlias:
     """Quest alias representation"""
 
-    def __init__(self, index, name, flags=None):
-        self.index = index
-        self.name = name
-        self.flags = flags
-        self.ref_id = None
-        self.conditions = []
-        self.scripts = []
-
-    def __repr__(self):
-        return f"Alias({self.index}, '{self.name}')"
+    index: int
+    name: str
+    flags: Optional[str] = None
+    ref_id: Optional[str] = None
+    conditions: List["ESXCondition"] = field(default_factory=list)
+    scripts: List[str] = field(default_factory=list)
 
 
+@dataclass
 class ESXCondition:
     """CTDA condition"""
 
-    def __init__(
-        self,
-        operator=None,
-        function_index=None,
-        comparison_value=None,
-        param1=None,
-        param2=None,
-        run_on_type=None,
-        reference=None,
-    ):
-        self.operator = operator
-        self.function_index = function_index
-        self.comparison_value = comparison_value
-        self.param1 = param1
-        self.param2 = param2
-        self.run_on_type = run_on_type
-        self.reference = reference
-
-    def __repr__(self):
-        return f"Condition(func={self.function_index}, params=[{self.param1}, {self.param2}])"
+    operator: Optional[str] = None
+    function_index: Optional[int] = None
+    comparison_value: Optional[float] = None
+    param1: Optional[str] = None
+    param2: Optional[str] = None
+    run_on_type: Optional[str] = None
+    reference: Optional[str] = None
 
 
 class ESXParser:
     """Parser to convert XML to ESX objects"""
 
-    def __init__(self):
-        self.current_quest = None
-        self.current_objective = None
+    def __init__(self) -> None:
+        self.current_quest: Optional[ESXQuest] = None
+        self.current_objective: Optional[ESXObjective] = None
 
-    def parse_file(self, filename):
+    def parse_file(self, filename: str) -> ESXPlugin:
         """Parse an ESX file and return a structured representation"""
         try:
             tree = ET.parse(filename)
@@ -207,9 +185,9 @@ class ESXParser:
             print(f"Error parsing {filename}: {str(e)}")
             raise
 
-    def parse_plugin(self, root):
+    def parse_plugin(self, root: ET.Element) -> ESXPlugin:
         """Parse the plugin root element"""
-        plugin = ESXPlugin(root.get("version", "0.7.4"))
+        plugin = ESXPlugin(tag=root.tag, version=root.get("version", "0.7.4"))
 
         # Parse each direct child
         for child in root:
@@ -220,32 +198,38 @@ class ESXParser:
 
         return plugin
 
-    def parse_tes4(self, element):
+    def parse_tes4(self, element: ET.Element) -> ESXTES4:
         """Parse TES4 header"""
-        tes4 = ESXTES4(element.attrib)
+        tes4 = ESXTES4(tag=element.tag, attrib=element.attrib)
 
         for child in element:
-            if isinstance(child.tag, str):
-                child_elem = ESXElement(child.tag, child.attrib, child.text)
+            child_elem = ESXElement(tag=child.tag, attrib=child.attrib, text=child.text)
 
-                # Parse struct elements
-                if child.tag == "HEDR" and len(child) > 0:
-                    for struct_child in child:
-                        if struct_child.tag == "struct":
-                            struct_elem = ESXElement("struct", struct_child.attrib)
-                            child_elem.append(struct_elem)
+            # Parse struct elements
+            if child.tag == "HEDR" and len(child) > 0:
+                for struct_child in child:
+                    if struct_child.tag == "struct":
+                        struct_elem = ESXElement(
+                            tag="struct", attrib=struct_child.attrib
+                        )
+                        child_elem.append(struct_elem)
 
-                tes4.append(child_elem)
+            tes4.append(child_elem)
 
-                # Track masters
-                if child.tag == "MAST":
-                    tes4.masters.append(child.text)
+            # Track masters
+            if child.tag == "MAST":
+                tes4.masters.append(child.text)
 
         return tes4
 
-    def parse_grup(self, element):
+    def parse_grup(self, element: ET.Element) -> ESXGroup:
         """Parse a GRUP element"""
-        group = ESXGroup(element.get("label"), element.get("groupType"), element.attrib)
+        group = ESXGroup(
+            tag=element.tag,
+            label=element.get("label", ""),
+            group_type=element.get("groupType", ""),
+            attrib=element.attrib,
+        )
 
         # Parse records in this group
         for child in element:
@@ -254,15 +238,15 @@ class ESXParser:
                 group.add_record(quest)
             else:
                 # Handle other record types if needed
-                record = ESXRecord(child.tag, child.attrib)
+                record = ESXRecord(tag=child.tag, attrib=child.attrib)
                 self.parse_generic_elements(child, record)
                 group.add_record(record)
 
         return group
 
-    def parse_quest(self, element):
+    def parse_quest(self, element: ET.Element) -> ESXQuest:
         """Parse a QUST record"""
-        quest = ESXQuest(element.attrib)
+        quest = ESXQuest(tag=element.tag, attrib=element.attrib)
         self.current_quest = quest
 
         # Track the current objective and alias for relationship building
@@ -272,7 +256,7 @@ class ESXParser:
 
         # First pass - create the basic structure
         for child in element:
-            child_elem = ESXElement(child.tag, child.attrib, child.text)
+            child_elem = ESXElement(tag=child.tag, attrib=child.attrib, text=child.text)
             self.parse_generic_elements(child, child_elem)
             quest.append(child_elem)
 
@@ -301,9 +285,9 @@ class ESXParser:
                 current_objective["name"] = child.text
                 # At this point, we have enough to create an objective
                 obj = ESXObjective(
-                    current_objective["index"],
-                    current_objective["name"],
-                    current_objective["flags"],
+                    index=current_objective["index"],
+                    name=current_objective["name"],
+                    flags=current_objective["flags"],
                 )
                 quest.add_objective(obj)
                 self.current_objective = obj
@@ -312,8 +296,8 @@ class ESXParser:
                 if len(child) > 0 and self.current_objective:
                     for struct_elem in child:
                         if struct_elem.tag == "struct":
-                            alias_id = struct_elem.get("alias")
-                            flags = struct_elem.get("flags", "0x00000000")
+                            alias_id = int(struct_elem.get("alias", 0))
+                            flags = int(struct_elem.get("flags", "0x00000000"), 16)
                             self.current_objective.add_target(
                                 alias_id, flags, conditions.copy()
                             )
@@ -336,9 +320,9 @@ class ESXParser:
                 current_alias["flags"] = child.text
                 # At this point we can create the alias
                 alias = ESXAlias(
-                    current_alias["index"],
-                    current_alias["name"],
-                    current_alias["flags"],
+                    index=current_alias["index"],
+                    name=current_alias["name"],
+                    flags=current_alias["flags"],
                 )
                 quest.add_alias(alias)
                 # Don't reset current_alias here as we might add more info to it
@@ -355,14 +339,16 @@ class ESXParser:
 
         return quest
 
-    def parse_vmad(self, element, parent):
+    def parse_vmad(
+        self, element: ET.Element, parent: ESXQuest
+    ) -> List[dict[str, Union[str, int]]]:
         """Parse script info from VMAD"""
         scripts = []
 
         for child in element:
             if child.tag == "script":
-                script_name = child.get("name")
-                status = child.get("status")
+                script_name = child.get("name", "")
+                status = child.get("status", "")
                 scripts.append({"name": script_name, "status": status})
                 parent.script = script_name
 
@@ -371,9 +357,9 @@ class ESXParser:
                     if frag_child.tag == "alias":
                         for alias_child in frag_child:
                             if alias_child.tag == "script":
-                                script_name = alias_child.get("name")
-                                status = alias_child.get("status")
-                                obj_id = frag_child.get("object")
+                                script_name = alias_child.get("name", "")
+                                status = alias_child.get("status", "")
+                                obj_id = frag_child.get("object", "")
                                 alias_scripts = {
                                     "name": script_name,
                                     "status": status,
@@ -383,14 +369,14 @@ class ESXParser:
 
         return scripts
 
-    def parse_dnam(self, element, quest):
+    def parse_dnam(self, element: ET.Element, quest: ESXQuest) -> None:
         """Parse quest flags and priority"""
         for child in element:
             if child.tag == "struct":
-                quest.quest_flags = child.get("flags")
-                quest.priority = child.get("priority")
+                quest.quest_flags = child.get("flags", "")
+                quest.priority = int(child.get("priority", 0))
 
-    def parse_condition(self, element):
+    def parse_condition(self, element: ET.Element) -> ESXCondition:
         """Parse a CTDA condition"""
         cond = ESXCondition()
 
@@ -412,15 +398,17 @@ class ESXParser:
 
         return cond
 
-    def parse_generic_elements(self, xml_element, esx_element):
+    def parse_generic_elements(
+        self, xml_element: ET.Element, esx_element: ESXElement
+    ) -> None:
         """Parse any sub-elements generically"""
         for child in xml_element:
-            child_elem = ESXElement(child.tag, child.attrib, child.text)
+            child_elem = ESXElement(tag=child.tag, attrib=child.attrib, text=child.text)
             self.parse_generic_elements(child, child_elem)
             esx_element.append(child_elem)
 
 
-def summarize_plugin(plugin):
+def summarize_plugin(plugin: ESXPlugin) -> str:
     """Generate a summary of the plugin's contents"""
     summary = []
     summary.append("# Skyrim ESP Plugin Summary\n")
@@ -523,7 +511,7 @@ def summarize_plugin(plugin):
     return "\n".join(summary)
 
 
-def write_plugin_to_xml(plugin, output_file):
+def write_plugin_to_xml(plugin: ESXPlugin, output_file: str) -> None:
     """Write the plugin back to XML"""
     root = plugin.to_xml()
     tree = ET.ElementTree(root)
@@ -531,7 +519,7 @@ def write_plugin_to_xml(plugin, output_file):
     tree.write(output_file, encoding="UTF-8", xml_declaration=True)
 
 
-def main():
+def main() -> None:
     """Main entry point"""
     if len(sys.argv) < 2:
         print("Usage: python esx_parser.py <input_file> [output_file]")
