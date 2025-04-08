@@ -40,5 +40,5 @@ skse_plugin({
         "unordered_dense",
     },
     deps = {"Build Papyrus Scripts"},
-    mod_files = {"SmartMarkers.esp", "Scripts"},
+    mod_files = {"SmartMarkers.esp", "Scripts", "SKSE"},
 })
