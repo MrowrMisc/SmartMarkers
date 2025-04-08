@@ -28,7 +28,7 @@ target("Build Papyrus Scripts")
     compile_papyrus_scripts()
     
 skse_plugin({
-    name = "Where Are The Bodies",
+    name = "Smart Markers",
     version = "0.0.1",
     author = "Mrowr Purr",
     email = "mrowr.purr@gmail.com",
@@ -40,5 +40,5 @@ skse_plugin({
         "unordered_dense",
     },
     deps = {"Build Papyrus Scripts"},
-    mod_files = {"WhereAreTheBodies.esp", "Scripts"},
+    mod_files = {"SmartMarkers.esp", "Scripts"},
 })

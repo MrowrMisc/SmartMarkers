@@ -36,7 +36,7 @@ def rename_and_hookup_aliases(file_path):
 
 
 # Path to the XML file
-file_path = r"WhereAreTheBodies.esx"
+file_path = r"SmartMarkers.esx"
 
 # Run the function
 rename_and_hookup_aliases(file_path)

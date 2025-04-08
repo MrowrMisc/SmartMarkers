@@ -4,11 +4,57 @@
 #include <SkyrimScripting/Logging.h>
 #include <collections.h>
 
+#include <mutex>
+#include <optional>
+
 #include "Constants.h"
 
-std::uint32_t                              nextQuestAliasIndex = 0;
+std::string MakePascalCase(std::string_view text) {
+    std::string result;
+    result.reserve(text.size());
+    bool capitalizeNext = true;
+    for (auto c : text) {
+        if (c == ' ') {
+            capitalizeNext = true;
+            continue;
+        }
+        if (capitalizeNext) {
+            result += std::toupper(c);
+            capitalizeNext = false;
+        } else {
+            result += std::tolower(c);
+        }
+    }
+    return result;
+}
+
 std::vector<SKSE::ModCallbackEvent>        sentModEvents;
 collections_map<RE::Actor*, std::uint32_t> trackedActorsToObjectiveIndexes;
+std::deque<std::uint32_t>                  availableQuestAliasIndexes{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+
+std::optional<std::uint32_t> GetAvailableQuestAliasIndex() {
+    static std::mutex           queueMutex;
+    std::lock_guard<std::mutex> lock(queueMutex);
+
+    if (availableQuestAliasIndexes.empty()) return std::nullopt;
+    auto index = availableQuestAliasIndexes.front();
+    availableQuestAliasIndexes.pop_front();
+    return index;
+}
+
+void ReturnAvailableQuestAliasIndex(std::uint32_t index) { availableQuestAliasIndexes.push_back(index); }
+
+void SetObjectiveDisplayText(RE::TESQuest* quest, std::uint32_t objectiveIndex, std::string_view text) {
+    auto i = 0;
+    for (auto& objective : quest->objectives) {
+        if (i == objectiveIndex) {
+            objective->displayText = MakePascalCase(text);
+            Log("[{}] Setting objective {} text to {}", text, i, text);
+            break;
+        }
+        ++i;
+    }
+}
 
 EventSink* EventSink::GetSingleton() {
     static EventSink singleton;
@@ -45,24 +91,21 @@ RE::BSEventNotifyControl EventSink::ProcessEvent(const RE::TESDeathEvent* event,
                                 return RE::BSEventNotifyControl::kContinue;
                             }
 
-                            auto objectiveIndex = nextQuestAliasIndex++;
-                            auto bodyIndex      = objectiveIndex + 1;
+                            auto objectiveIndexValue = GetAvailableQuestAliasIndex();
+                            if (!objectiveIndexValue) {
+                                Log("[{}] No available quest alias indexes. Not tracking.", actorName);
+                                return RE::BSEventNotifyControl::kContinue;
+                            }
+
+                            auto objectiveIndex  = *objectiveIndexValue;
+                            auto objectiveNumber = objectiveIndex + 1;
 
                             trackedActorsToObjectiveIndexes.emplace(actor, objectiveIndex);
-
-                            auto i = 0;
-                            for (auto& objective : quest->objectives) {
-                                if (i == objectiveIndex) {
-                                    objective->displayText = actorName;
-                                    Log("[{}] Setting objective {} text to {}", actorName, i, actorName);
-                                    break;
-                                }
-                                ++i;
-                            }
+                            SetObjectiveDisplayText(quest, objectiveIndex, actorName);
 
                             Log("[{}] Sending mod event", actor->GetName());
                             auto& modEvent = sentModEvents.emplace_back(
-                                SKSE::ModCallbackEvent{SKSE_Callback_Event_Names::TRACK_ACTOR, std::format("Body{}", bodyIndex), static_cast<float>(bodyIndex), actor}
+                                SKSE::ModCallbackEvent{SKSE_Callback_Event_Names::TRACK_ACTOR, std::format("Body{}", objectiveNumber), static_cast<float>(objectiveNumber), actor}
                             );
                             SKSE::GetModCallbackEventSource()->SendEvent(&modEvent);
                         }
@@ -87,6 +130,9 @@ RE::BSEventNotifyControl EventSink::ProcessEvent(const RE::TESActivateEvent* eve
                 );
                 SKSE::GetModCallbackEventSource()->SendEvent(&modEvent);
                 trackedActorsToObjectiveIndexes.erase(found);
+                ReturnAvailableQuestAliasIndex(objectiveIndex);
+                SetObjectiveDisplayText(RE::TESForm::LookupByEditorID<RE::TESQuest>(QUEST_EDITOR_ID), objectiveIndex, "");
+                Log("[{}] Actor {} removed from tracking", activatedActor->GetName(), bodyIndex);
             } else {
                 Log("[{}] Actor not tracked. Not sending mod event", activatedActor->GetName());
             }
