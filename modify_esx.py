@@ -50,132 +50,15 @@ def modify_esx_file(input_file: str, output_file: str) -> bool:
     return True
 
 
-# def modify_quest(quest: ESXQuest) -> None:
-#     """Apply modifications to a quest record"""
-#     print(f"Modifying quest: {quest.editor_id}")
-
-#     # Step 1: Identify aliases and prepare mappings
-#     objective_one_aliases = []
-#     player_ref = None
-#     alias_mapping = {}
-
-#     for alias in quest.aliases:
-#         if alias.name.startswith("ObjectiveOne"):
-#             objective_one_aliases.append(alias)
-#         elif alias.name == "PlayerRef":
-#             player_ref = alias
-
-#     # Step 2: Preserve essential elements
-#     new_elements = []
-#     essential_tags = ["EDID", "VMAD", "FULL", "DNAM", "NEXT", "INDX", "QSDT"]
-
-#     for element in quest.elements:
-#         if element.tag in essential_tags:
-#             # Preserve attributes and child elements
-#             preserved_element = ESXElement(
-#                 tag=element.tag,
-#                 attrib=element.attrib.copy(),
-#                 text=element.text,
-#             )
-#             for child in element.elements:
-#                 preserved_element.append(child)
-#             new_elements.append(preserved_element)
-
-#     # Step 3: Add or modify quest objectives
-#     obj_index = ESXElement("QOBJ", text="1")
-#     obj_flags = ESXElement("FNAM", text="0")
-#     obj_name = ESXElement("NNAM", text="Objective One")
-#     new_elements.extend([obj_index, obj_flags, obj_name])
-
-#     # Step 4: Add QSTA and CTDA elements for each alias
-#     for i, alias in enumerate(objective_one_aliases):
-#         # Add QSTA element
-#         qsta = ESXElement("QSTA")
-#         struct = ESXElement("struct", {"alias": alias.id, "flags": "0x00000000"})
-#         qsta.append(struct)
-#         new_elements.append(qsta)
-
-#         # Add CTDA condition element
-#         ctda = create_condition_element(alias.id)
-#         new_elements.append(ctda)
-
-#         # Map alias to a new name
-#         new_name = f"Objective{i + 1}"
-#         alias_mapping[alias.id] = (new_name, f"{i + 41}")
-
-#     # Step 5: Update ANAM element with the total number of aliases
-#     total_aliases = len(objective_one_aliases) + (1 if player_ref else 0)
-#     new_elements.append(ESXElement("ANAM", text=str(total_aliases)))
-
-#     # Step 6: Add ALST, ALID, FNAM, and other alias-related elements
-#     for alias in objective_one_aliases:
-#         new_name, _ = alias_mapping[alias.id]
-#         flag_value = alias.flags or "4242"
-
-#         alst = ESXElement("ALST", text=alias.id)
-#         alid = ESXElement("ALID", text=new_name)
-#         fnam = ESXElement("FNAM", text=flag_value)
-#         vtck = ESXElement("VTCK", text="00000000")
-#         aled = ESXElement("ALED")
-
-#         new_elements.extend([alst, alid, fnam, vtck, aled])
-
-#     # Step 7: Handle PlayerRef alias if it exists
-#     if player_ref:
-#         alst = ESXElement("ALST", text=player_ref.id)
-#         alid = ESXElement("ALID", text="PlayerRef")
-#         fnam = ESXElement("FNAM", text=player_ref.flags or "0")
-#         alfr = ESXElement("ALFR", text="00000014")
-#         vtck = ESXElement("VTCK", text="00000000")
-#         aled = ESXElement("ALED")
-
-#         new_elements.extend([alst, alid, fnam, alfr, vtck, aled])
-
-#     # Step 8: Replace the quest's elements with the updated list
-#     quest.elements = new_elements
-
-#     # Step 9: Update objectives with targets and conditions
-#     objective_one = ESXObjective(1, "Objective One", 0)
-#     for alias in objective_one_aliases:
-#         objective_one.add_target(
-#             alias.id, "0x00000000", [ESXCondition(function_index=566)]
-#         )
-
-#     quest.objectives = [objective_one]
-
-#     # Debugging output
-#     print("Quest modified successfully:")
-#     print(f"- Preserved {len(objective_one_aliases)} ObjectiveOne aliases")
-#     print(f"- Added conditions to all {len(objective_one_aliases)} aliases")
-#     print(f"- {'Preserved' if player_ref else 'No'} PlayerRef alias")
-
-
 def modify_quest(quest: ESXQuest) -> None:
     """Apply modifications to a quest record"""
     print(f"Modifying quest: {quest.editor_id}")
 
-    # Step 1: Identify aliases and prepare mappings
-    objective_one_aliases = []
-    player_ref = None
-    alias_mapping = {}
-
-    # Debug what aliases are actually available
-    print(f"Available aliases: {len(quest.aliases)}")
-    for alias in quest.aliases:
-        if alias.name and alias.name.startswith("ObjectiveOne"):
-            print(f"  Found ObjectiveOne alias: {alias.index}, Name: {alias.name}")
-            objective_one_aliases.append(alias)
-        elif alias.name == "PlayerRef":
-            player_ref = alias
-            print(f"  Found PlayerRef alias: {alias.index}")
-
-    print(f"Found {len(objective_one_aliases)} ObjectiveOne aliases")
-
-    # Step 2: Build a new set of elements for our simplified quest
+    # Step 1: We're going to create a completely new quest with specific form IDs
     new_elements = []
+    essential_tags = ["EDID", "VMAD", "DNAM", "NEXT", "INDX", "QSDT"]
 
-    # Preserve essential elements
-    essential_tags = ["EDID", "VMAD", "FULL", "DNAM", "NEXT", "INDX", "QSDT"]
+    # Preserve essential elements (header, script data, etc.)
     for element in quest.elements:
         if element.tag in essential_tags:
             preserved_element = ESXElement(
@@ -197,71 +80,156 @@ def modify_quest(quest: ESXQuest) -> None:
                 preserved_element.append(child_copy)
             new_elements.append(preserved_element)
 
-    # Step 3: Add objective elements
-    obj_index = ESXElement("QOBJ", text="1")
-    obj_flags = ESXElement("FNAM", text="0")
-    obj_name = ESXElement("NNAM", text="Objective One")
-    new_elements.extend([obj_index, obj_flags, obj_name])
+    # Update quest ID to 0x800 for ESL compatibility
+    quest.attrib["id"] = "00000800"
 
-    # Step 4: Create mapping for ObjectiveOne aliases with sequential numbering
-    for i, alias in enumerate(objective_one_aliases):
-        # Map alias to a new name with incrementing index
-        new_name = f"ObjectiveOne{i + 1}"
-        alias_mapping[alias.index] = (new_name, f"{i + 41}")
-        print(f"Mapping alias {alias.index} to {new_name}")
+    # Add FULL name element (quest name)
+    full_element = ESXElement("FULL", text="Smart Markers")
+    new_elements.append(full_element)
 
-    # Step 5: Add QSTA and CTDA elements for each alias
-    for i, alias in enumerate(objective_one_aliases):
-        # Add QSTA element for the objective
-        qsta = ESXElement("QSTA")
-        struct = ESXElement("struct", {"alias": alias.index, "flags": "0x00000000"})
-        qsta.append(struct)
-        new_elements.append(qsta)
+    # IMPORTANT: We need to reduce the number of aliases to fit within ESL limits
+    # A maximum of 2048 form IDs are available (0x800-0xFFF)
+    # We need 1 for quest + 1 for player ref + aliases
+    max_aliases = 2046  # Max aliases we can have (2048 - 2)
 
-        # Add CTDA condition element
-        ctda = create_condition_element(int(alias.index))
-        new_elements.append(ctda)
+    # Determine how many objectives and aliases per objective we can have
+    # Let's aim for 20 objectives with 100 aliases each = 2000 total
+    num_objectives = 20
+    aliases_per_objective = 100
+    total_aliases = num_objectives * aliases_per_objective + 1  # +1 for PlayerRef
 
-    # Step 6: Set the ANAM element with the correct total aliases
-    total_aliases = len(objective_one_aliases) + (1 if player_ref else 0)
+    if total_aliases > max_aliases:
+        print(
+            f"Warning: Total aliases ({total_aliases}) exceeds ESL limit. Adjusting..."
+        )
+        # Reduce to fit within limits
+        num_objectives = 20
+        aliases_per_objective = (
+            100  # 20*100 = 2000 aliases (+ quest + playerref = 2002 form IDs)
+        )
+        total_aliases = num_objectives * aliases_per_objective + 1
+
+    # Dictionary to track allocated form IDs (to ensure uniqueness)
+    used_form_ids = {"0x800", "0x801"}  # Quest and PlayerRef
+
+    print(
+        f"Creating {num_objectives} objectives with {aliases_per_objective} aliases each"
+    )
+    print(f"Total alias count: {total_aliases}")
+
+    # Generate form IDs for all aliases - FIXED to use proper hex values
+    alias_form_ids = []
+    current_id = 0x802  # Start after PlayerRef
+
+    for i in range(num_objectives * aliases_per_objective):
+        # Ensure we stay within ESL limits
+        if current_id > 0xFFF:
+            print(
+                f"Error: Form ID limit exceeded at alias {i + 1}. Max is 0xFFF (4095)."
+            )
+            # Reduce objective or alias count here if this happens
+            break
+
+        hex_id = f"0x{current_id:x}"
+        # We'll store both hex string and decimal value for different uses
+        alias_form_ids.append((hex_id, current_id))
+        used_form_ids.add(hex_id)
+        current_id += 1
+
+    # Step 2: Add objectives elements
+    for obj_index in range(1, num_objectives + 1):
+        obj_num = ESXElement("QOBJ", text=str(obj_index))
+        obj_flags = ESXElement("FNAM", text="0")
+        obj_name = ESXElement("NNAM", text=f"Objective {obj_index}")
+        new_elements.extend([obj_num, obj_flags, obj_name])
+
+        # Create each objective's reference aliases and their target data
+        for alias_index in range(1, aliases_per_objective + 1):
+            global_alias_index = (obj_index - 1) * aliases_per_objective + alias_index
+
+            # Verify we have enough form IDs allocated
+            if global_alias_index > len(alias_form_ids):
+                print(
+                    f"Warning: Not enough form IDs for alias {obj_index}_{alias_index}"
+                )
+                continue
+
+            form_id_hex, form_id_dec = alias_form_ids[global_alias_index - 1]
+
+            # Add QSTA (target data) element for this alias
+            qsta = ESXElement("QSTA")
+            # Use the decimal form for struct attribute
+            struct = ESXElement(
+                "struct", {"alias": str(form_id_dec), "flags": "0x00000000"}
+            )
+            qsta.append(struct)
+            new_elements.append(qsta)
+
+            # Add CTDA condition element for this alias
+            ctda = create_condition_element(form_id_dec)
+            new_elements.append(ctda)
+
+    # Step 3: Set the ANAM element with the total number of aliases
     new_elements.append(ESXElement("ANAM", text=str(total_aliases)))
 
-    # Step 7: Add alias-related elements (ALST, ALID, etc.)
-    # First add ObjectiveOne aliases
-    for alias in objective_one_aliases:
-        new_name = alias_mapping[alias.index][0]
+    # Step 4: Add reference alias elements (ALST, ALID, etc.)
+    for obj_index in range(1, num_objectives + 1):
+        for alias_index in range(1, aliases_per_objective + 1):
+            global_alias_index = (obj_index - 1) * aliases_per_objective + alias_index
 
-        alst = ESXElement("ALST", text=alias.index)
-        alid = ESXElement("ALID", text=new_name)
-        fnam = ESXElement("FNAM", text=alias.flags or "4242")
-        vtck = ESXElement("VTCK", text="00000000")
-        aled = ESXElement("ALED")
+            # Verify we have enough form IDs allocated
+            if global_alias_index > len(alias_form_ids):
+                continue
 
-        print(f"Adding alias {alias.index} as {new_name}")
-        new_elements.extend([alst, alid, fnam, vtck, aled])
+            form_id_hex, form_id_dec = alias_form_ids[global_alias_index - 1]
 
-    # Then add PlayerRef if exists
-    if player_ref:
-        alst = ESXElement("ALST", text=player_ref.index)
-        alid = ESXElement("ALID", text="PlayerRef")
-        fnam = ESXElement("FNAM", text=player_ref.flags or "0")
-        alfr = ESXElement("ALFR", text="00000014")
-        vtck = ESXElement("VTCK", text="00000000")
-        aled = ESXElement("ALED")
+            alias_name = f"Objective{obj_index}_{alias_index}"
 
-        new_elements.extend([alst, alid, fnam, alfr, vtck, aled])
+            # Use decimal for ALST
+            alst = ESXElement("ALST", text=str(form_id_dec))
+            alid = ESXElement("ALID", text=alias_name)
+            fnam = ESXElement("FNAM", text="4242")
+            vtck = ESXElement("VTCK", text="00000000")
+            aled = ESXElement("ALED")
 
-    # Step 8: Replace the quest's elements with our new simplified list
+            new_elements.extend([alst, alid, fnam, vtck, aled])
+            print(f"Added alias {form_id_hex} (dec: {form_id_dec}) as {alias_name}")
+
+    # Step 5: Add PlayerRef alias
+    player_ref_id = "801"  # decimal form of 0x801
+    alst = ESXElement("ALST", text=player_ref_id)
+    alid = ESXElement("ALID", text="PlayerRef")
+    fnam = ESXElement("FNAM", text="0")
+    alfr = ESXElement("ALFR", text="00000014")  # Player reference
+    vtck = ESXElement("VTCK", text="00000000")
+    aled = ESXElement("ALED")
+
+    new_elements.extend([alst, alid, fnam, alfr, vtck, aled])
+    print("Added PlayerRef alias (0x801)")
+
+    # Step 6: Replace the quest's elements with our new elements
     quest.elements = new_elements
 
-    # Step 9: Update objectives with targets and conditions
-    objective_one = ESXObjective(1, "Objective One", 0)
-    for alias in objective_one_aliases:
-        objective_one.add_target(
-            int(alias.index), "0x00000000", [ESXCondition(function_index=566)]
-        )
+    # Step 7: Update objectives programmatically
+    quest.objectives = []
+    for obj_index in range(1, num_objectives + 1):
+        objective = ESXObjective(obj_index, f"Objective {obj_index}", 0)
 
-    quest.objectives = [objective_one]
+        # Add target for each reference alias in this objective
+        for alias_index in range(1, aliases_per_objective + 1):
+            global_alias_index = (obj_index - 1) * aliases_per_objective + alias_index
+
+            # Verify we have enough form IDs allocated
+            if global_alias_index > len(alias_form_ids):
+                continue
+
+            form_id_hex, form_id_dec = alias_form_ids[global_alias_index - 1]
+
+            objective.add_target(
+                form_id_dec, "0x00000000", [ESXCondition(function_index=566)]
+            )
+
+        quest.add_objective(objective)
 
     # Ensure version attribute exists on root plugin element
     root_element = quest
@@ -271,14 +239,15 @@ def modify_quest(quest: ESXQuest) -> None:
         if "version" not in root_element.attrib:
             root_element.attrib["version"] = "0.7.4"
 
-    # Debugging output
-    print("Quest modified successfully:")
-    print(
-        f"- Renamed {len(objective_one_aliases)} ObjectiveOne aliases with sequential numbering"
-    )
-    print("- Removed all ReferenceAlias entries")
-    print(f"- {'Preserved' if player_ref else 'No'} PlayerRef alias")
-    print(f"- Total aliases in final quest: {total_aliases}")
+    # Summarize form ID usage
+    print("\nForm ID allocation summary:")
+    print("- Quest ID: 0x800")
+    print("- PlayerRef ID: 0x801")
+    print(f"- Alias form IDs: 0x802 to 0x{current_id - 1:x}")
+    print(f"- Total unique form IDs: {len(used_form_ids)} (max allowed: 2048)")
+
+    if current_id > 0xFFF:
+        print("WARNING: Form IDs exceed the ESL limit of 0x800-0xFFF!")
 
 
 def main() -> None:
