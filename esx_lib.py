@@ -269,7 +269,48 @@ class ESXParser:
                 self.parse_vmad(child, quest)
             elif child.tag == "DNAM":
                 self.parse_dnam(child, quest)
-            elif child.tag == "QOBJ":
+
+        # Second pass - handle aliases explicitly
+        alias_data = {}  # To store alias information keyed by index
+        current_alias_id = None
+
+        # Find all aliases in the XML
+        for child in element:
+            if child.tag == "ALST":
+                current_alias_id = child.text
+                if current_alias_id not in alias_data:
+                    alias_data[current_alias_id] = {"index": current_alias_id}
+            elif child.tag == "ALID" and current_alias_id:
+                if current_alias_id in alias_data:
+                    alias_data[current_alias_id]["name"] = child.text
+            elif child.tag == "FNAM" and current_alias_id:
+                if current_alias_id in alias_data:
+                    alias_data[current_alias_id]["flags"] = child.text
+            elif child.tag == "ALFR" and current_alias_id:
+                if current_alias_id in alias_data:
+                    alias_data[current_alias_id]["ref_id"] = child.text
+            elif child.tag == "ALED":
+                current_alias_id = None
+
+        # Create aliases from the collected data
+        print(f"Found {len(alias_data)} aliases in XML")
+        for alias_id, data in alias_data.items():
+            if "name" in data:  # Only create if we have a name
+                alias = ESXAlias(
+                    index=data["index"],
+                    name=data["name"],
+                    flags=data.get("flags"),
+                    ref_id=data.get("ref_id"),
+                )
+                quest.add_alias(alias)
+
+        # Third pass - handle quest objectives
+        # Reset tracking variables
+        current_objective = None
+        conditions = []
+
+        for child in element:
+            if child.tag == "QOBJ":
                 # Start tracking a new objective
                 index = int(child.text) if child.text else 0
                 current_objective = {
@@ -296,7 +337,7 @@ class ESXParser:
                 if len(child) > 0 and self.current_objective:
                     for struct_elem in child:
                         if struct_elem.tag == "struct":
-                            alias_id = int(struct_elem.get("alias", 0))
+                            alias_id = struct_elem.get("alias", "0")
                             flags = int(struct_elem.get("flags", "0x00000000"), 16)
                             self.current_objective.add_target(
                                 alias_id, flags, conditions.copy()
@@ -307,35 +348,13 @@ class ESXParser:
                 # Parse condition and add to the current list
                 cond = self.parse_condition(child)
                 conditions.append(cond)
-            elif child.tag == "ALST":
-                # Start tracking a new alias
-                current_alias = {
-                    "index": int(child.text) if child.text else 0,
-                    "name": None,
-                    "flags": None,
-                }
-            elif child.tag == "ALID" and current_alias:
-                current_alias["name"] = child.text
-            elif child.tag == "FNAM" and current_alias and current_alias.get("name"):
-                current_alias["flags"] = child.text
-                # At this point we can create the alias
-                alias = ESXAlias(
-                    index=current_alias["index"],
-                    name=current_alias["name"],
-                    flags=current_alias["flags"],
-                )
-                quest.add_alias(alias)
-                # Don't reset current_alias here as we might add more info to it
-            elif child.tag == "ALFR" and current_alias:
-                # Reference for alias
-                ref = child.text
-                for alias in quest.aliases:
-                    if alias.index == current_alias["index"]:
-                        alias.ref_id = ref
-                        break
-            elif child.tag == "ALED":
-                # End of alias definition
-                current_alias = None
+
+        # Debug output
+        print(
+            f"Quest {quest.editor_id} has {len(quest.aliases)} aliases and {len(quest.objectives)} objectives"
+        )
+        for alias in quest.aliases:
+            print(f"  - Alias: {alias.index} = {alias.name}")
 
         return quest
 

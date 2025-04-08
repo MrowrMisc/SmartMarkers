@@ -2,6 +2,7 @@ import sys
 from typing import Optional
 
 from esx_lib import (
+    ESXCondition,
     ESXElement,
     ESXObjective,
     ESXParser,
@@ -149,49 +150,6 @@ def modify_esx_file(input_file: str, output_file: str) -> bool:
 #     print(f"- {'Preserved' if player_ref else 'No'} PlayerRef alias")
 
 
-# def modify_quest(quest: ESXQuest) -> None:
-#     """Apply modifications to a quest record"""
-#     print(f"Modifying quest: {quest.editor_id}")
-
-#     # Step 1: We're not going to modify at all, just ensure the XML structure is valid
-#     # Keep all existing elements and don't append any duplicate elements
-
-#     # Ensure the plugin has the correct version attribute
-#     root_element = quest
-#     while root_element.parent:
-#         root_element = root_element.parent
-
-#     if hasattr(root_element, "attrib") and isinstance(root_element, ESXPlugin):
-#         if "version" not in root_element.attrib:
-#             root_element.attrib["version"] = "0.7.4"
-
-#     # Make sure ANAM has the correct value
-#     anam_elements = [elem for elem in quest.elements if elem.tag == "ANAM"]
-#     for anam in anam_elements:
-#         if anam.text != "52":
-#             anam.text = "52"
-
-#     # Find and remove any duplicate elements that might have been added
-#     all_tags = [elem.tag for elem in quest.elements]
-
-#     # Check for duplicates at the end
-#     element_index = len(quest.elements) - 1
-#     while element_index > 0:
-#         current_elem = quest.elements[element_index]
-#         if (
-#             current_elem.tag in ["QOBJ", "FNAM", "NNAM", "ANAM"]
-#             and all_tags.count(current_elem.tag) > 1
-#             and element_index > all_tags.index(current_elem.tag)
-#         ):
-#             # This is a duplicate element, remove it
-#             quest.elements.pop(element_index)
-#             all_tags.pop(element_index)
-
-#         element_index -= 1
-
-#     print("Quest verified successfully - no modifications were made")
-
-
 def modify_quest(quest: ESXQuest) -> None:
     """Apply modifications to a quest record"""
     print(f"Modifying quest: {quest.editor_id}")
@@ -201,86 +159,106 @@ def modify_quest(quest: ESXQuest) -> None:
     player_ref = None
     alias_mapping = {}
 
+    # Debug what aliases are actually available
+    print(f"Available aliases: {len(quest.aliases)}")
     for alias in quest.aliases:
-        if alias.name.startswith("ObjectiveOne"):
+        if alias.name and alias.name.startswith("ObjectiveOne"):
+            print(f"  Found ObjectiveOne alias: {alias.index}, Name: {alias.name}")
             objective_one_aliases.append(alias)
         elif alias.name == "PlayerRef":
             player_ref = alias
+            print(f"  Found PlayerRef alias: {alias.index}")
 
-    # Step 2: Instead of replacing elements, let's preserve all existing elements
-    # and only modify what needs to be changed
-    all_elements = quest.elements.copy()  # Work with a copy to avoid issues
+    print(f"Found {len(objective_one_aliases)} ObjectiveOne aliases")
 
-    # Find or create the Objective One elements
-    qobj_elem = next(
-        (e for e in all_elements if e.tag == "QOBJ" and e.text == "1"), None
-    )
-    if not qobj_elem:
-        qobj_elem = ESXElement("QOBJ", text="1")
-        all_elements.append(qobj_elem)
+    # Step 2: Build a new set of elements for our simplified quest
+    new_elements = []
 
-    fnam_elem = None
-    for i, elem in enumerate(all_elements):
-        if elem.tag == "FNAM" and i > 0 and all_elements[i - 1] is qobj_elem:
-            fnam_elem = elem
-            break
-    if not fnam_elem:
-        fnam_elem = ESXElement("FNAM", text="0")
-        all_elements.append(fnam_elem)
+    # Preserve essential elements
+    essential_tags = ["EDID", "VMAD", "FULL", "DNAM", "NEXT", "INDX", "QSDT"]
+    for element in quest.elements:
+        if element.tag in essential_tags:
+            preserved_element = ESXElement(
+                tag=element.tag,
+                attrib=element.attrib.copy(),
+                text=element.text,
+            )
+            for child in element.elements:
+                child_copy = ESXElement(
+                    tag=child.tag, attrib=child.attrib.copy(), text=child.text
+                )
+                for subchild in child.elements:
+                    subchild_copy = ESXElement(
+                        tag=subchild.tag,
+                        attrib=subchild.attrib.copy(),
+                        text=subchild.text,
+                    )
+                    child_copy.append(subchild_copy)
+                preserved_element.append(child_copy)
+            new_elements.append(preserved_element)
 
-    nnam_elem = None
-    for i, elem in enumerate(all_elements):
-        if elem.tag == "NNAM" and i > 0 and all_elements[i - 1] is fnam_elem:
-            nnam_elem = elem
-            break
-    if not nnam_elem:
-        nnam_elem = ESXElement("NNAM", text="Objective One")
-        all_elements.append(nnam_elem)
+    # Step 3: Add objective elements
+    obj_index = ESXElement("QOBJ", text="1")
+    obj_flags = ESXElement("FNAM", text="0")
+    obj_name = ESXElement("NNAM", text="Objective One")
+    new_elements.extend([obj_index, obj_flags, obj_name])
 
-    # Step 3: Ensure QSTA elements exist for each alias
-    qsta_index = next((i for i, e in enumerate(all_elements) if e.tag == "QSTA"), -1)
+    # Step 4: Create mapping for ObjectiveOne aliases with sequential numbering
     for i, alias in enumerate(objective_one_aliases):
-        # Check if QSTA already exists for this alias
-        alias_exists = False
-        for elem in all_elements:
-            if elem.tag == "QSTA":
-                for child in elem.elements:
-                    if child.tag == "struct" and child.attrib.get("alias") == alias.id:
-                        alias_exists = True
-                        break
+        # Map alias to a new name with incrementing index
+        new_name = f"ObjectiveOne{i + 1}"
+        alias_mapping[alias.index] = (new_name, f"{i + 41}")
+        print(f"Mapping alias {alias.index} to {new_name}")
 
-        if not alias_exists:
-            qsta = ESXElement("QSTA")
-            struct = ESXElement("struct", {"alias": alias.id, "flags": "0x00000000"})
-            qsta.append(struct)
-            if qsta_index >= 0:
-                all_elements.insert(qsta_index + 1 + i, qsta)
-            else:
-                all_elements.append(qsta)
+    # Step 5: Add QSTA and CTDA elements for each alias
+    for i, alias in enumerate(objective_one_aliases):
+        # Add QSTA element for the objective
+        qsta = ESXElement("QSTA")
+        struct = ESXElement("struct", {"alias": alias.index, "flags": "0x00000000"})
+        qsta.append(struct)
+        new_elements.append(qsta)
 
-        # Ensure CTDA exists for this alias
-        ctda = create_condition_element(alias.id)
-        all_elements.append(ctda)
+        # Add CTDA condition element
+        ctda = create_condition_element(int(alias.index))
+        new_elements.append(ctda)
 
-        # Map alias to a new name
-        new_name = f"Objective{i + 1}"
-        alias_mapping[alias.id] = (new_name, f"{i + 41}")
+    # Step 6: Set the ANAM element with the correct total aliases
+    total_aliases = len(objective_one_aliases) + (1 if player_ref else 0)
+    new_elements.append(ESXElement("ANAM", text=str(total_aliases)))
 
-    # Step 4: Update ANAM with correct value
-    anam_index = next((i for i, e in enumerate(all_elements) if e.tag == "ANAM"), -1)
-    if anam_index >= 0:
-        all_elements[anam_index].text = "52"
-    else:
-        all_elements.append(ESXElement("ANAM", text="52"))
+    # Step 7: Add alias-related elements (ALST, ALID, etc.)
+    # First add ObjectiveOne aliases
+    for alias in objective_one_aliases:
+        new_name = alias_mapping[alias.index][0]
 
-    # Step 5: Set the updated elements back to the quest
-    quest.elements = all_elements
+        alst = ESXElement("ALST", text=alias.index)
+        alid = ESXElement("ALID", text=new_name)
+        fnam = ESXElement("FNAM", text=alias.flags or "4242")
+        vtck = ESXElement("VTCK", text="00000000")
+        aled = ESXElement("ALED")
 
-    # Step 6: Update objectives with targets and conditions
+        print(f"Adding alias {alias.index} as {new_name}")
+        new_elements.extend([alst, alid, fnam, vtck, aled])
+
+    # Then add PlayerRef if exists
+    if player_ref:
+        alst = ESXElement("ALST", text=player_ref.index)
+        alid = ESXElement("ALID", text="PlayerRef")
+        fnam = ESXElement("FNAM", text=player_ref.flags or "0")
+        alfr = ESXElement("ALFR", text="00000014")
+        vtck = ESXElement("VTCK", text="00000000")
+        aled = ESXElement("ALED")
+
+        new_elements.extend([alst, alid, fnam, alfr, vtck, aled])
+
+    # Step 8: Replace the quest's elements with our new simplified list
+    quest.elements = new_elements
+
+    # Step 9: Update objectives with targets and conditions
     objective_one = ESXObjective(1, "Objective One", 0)
     for alias in objective_one_aliases:
         objective_one.add_target(
-            alias.id, "0x00000000", [ESXCondition(function_index=566)]
+            int(alias.index), "0x00000000", [ESXCondition(function_index=566)]
         )
 
     quest.objectives = [objective_one]
@@ -295,9 +273,12 @@ def modify_quest(quest: ESXQuest) -> None:
 
     # Debugging output
     print("Quest modified successfully:")
-    print(f"- Modified {len(objective_one_aliases)} ObjectiveOne aliases")
-    print("- Added conditions to all aliases")
+    print(
+        f"- Renamed {len(objective_one_aliases)} ObjectiveOne aliases with sequential numbering"
+    )
+    print("- Removed all ReferenceAlias entries")
     print(f"- {'Preserved' if player_ref else 'No'} PlayerRef alias")
+    print(f"- Total aliases in final quest: {total_aliases}")
 
 
 def main() -> None:
