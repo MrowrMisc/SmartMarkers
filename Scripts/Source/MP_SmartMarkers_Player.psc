@@ -38,6 +38,6 @@ event OnStopTrackingObjectReference(string eventName, string referenceAliasName,
     
     ReferenceAlias refAlias = _quest.GetAliasByName(referenceAliasName) as ReferenceAlias
     if refAlias
-        refAlias.TryToReset()
+        refAlias.Clear()
     endIf
 endEvent

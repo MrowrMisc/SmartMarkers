@@ -22,6 +22,7 @@ namespace SearchForReferences {
         std::atomic<std::chrono::steady_clock::time_point> lastRunTime(std::chrono::steady_clock::now() - updateInterval);
         constexpr auto                                     maxDistance = 1000.0f;
         collections_set<RE::TESObjectREFR*>                currentlyMarkedNearbyObjects;
+        collections_set<RE::TESObjectREFR*>                theseObjectsHaveBeenInteractedWith;
 
         auto                                               currentlyTrackingCount = 0;
         collections_map<RE::TESObjectREFR*, std::uint32_t> trackedObjectRefsToIndexes;
@@ -50,7 +51,36 @@ namespace SearchForReferences {
                 sentModEvents.emplace_back(SKSE::ModCallbackEvent{SKSE_Callback_Event_Names::STOP_TRACKING_ACTOR, std::format("Objective1_{}", objectiveIndex), 0.0f, ref});
             SKSE::GetModCallbackEventSource()->SendEvent(&modEvent);
             currentlyTrackingCount--;
+            trackedObjectRefsToIndexes.erase(found);
         }
+    }
+
+    void ResetAllCollections() {
+        currentlyMarkedNearbyObjects.clear();
+        theseObjectsHaveBeenInteractedWith.clear();
+        trackedObjectRefsToIndexes.clear();
+        currentlyTrackingCount = 0;
+    }
+
+    void DisallowObjectFromBeingMarked(RE::TESObjectREFR* ref) {
+        if (ref) {
+            theseObjectsHaveBeenInteractedWith.insert(ref);
+            Log("[{}] Disallowing object from being marked", ref->GetName());
+            if (trackedObjectRefsToIndexes.find(ref) != trackedObjectRefsToIndexes.end()) {
+                TellPapyrusToUntrackReference(ref);
+            }
+        }
+    }
+
+    inline bool IsObjectDisallowed(RE::TESObjectREFR* ref) {
+        if (ref) {
+            auto found = theseObjectsHaveBeenInteractedWith.find(ref);
+            if (found != theseObjectsHaveBeenInteractedWith.end()) {
+                Log("[{}] Object is disallowed", ref->GetName());
+                return true;
+            }
+        }
+        return false;
     }
 
     void UpdateNearbyMarkers() {
@@ -111,6 +141,7 @@ namespace SearchForReferences {
         });
 
         for (auto& ref : newlyDiscoveredNearbyObjectsToMark) {
+            if (IsObjectDisallowed(ref)) return;
             if (currentlyMarkedNearbyObjects.find(ref) == currentlyMarkedNearbyObjects.end()) {
                 Log("[{}] Marking nearby object", ref->GetName());
                 currentlyMarkedNearbyObjects.insert(ref);
