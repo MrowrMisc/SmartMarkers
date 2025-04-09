@@ -90,12 +90,17 @@ namespace SearchForReferences {
         collections_set<RE::TESObjectREFR*> newlyDiscoveredNearbyObjectsToMark;
 
         tes->ForEachReferenceInRange(player, maxDistance, [&](RE::TESObjectREFR* ref) {
+            // ref->GetInventoryCounts()
+            // ref->GetContainer()
             if (ref == player) return RE::BSContainer::ForEachResult::kContinue;
             if (ref && !ref->IsDeleted()) {
                 if (auto* baseObject = ref->GetBaseObject()) {
                     if (baseObject->GetFormType() == RE::FormType::Container || ref->IsDead()) {
-                        if (auto* container = ref->GetContainer()) {
-                            if (container->numContainerObjects > 0) {
+                        for (auto& [object, data] : ref->GetInventory()) {
+                            if (data.first > 0 && object) {  // && data.second && !data.second->IsLeveled()) {
+                                std::string_view name = object->GetName();
+                                if (name.empty()) continue;
+                                Log("Resolved item {:08X} ({}) x{}", object->GetFormID(), name, data.first);
                                 newlyDiscoveredNearbyObjectsToMark.insert(ref);
                             }
                         }
