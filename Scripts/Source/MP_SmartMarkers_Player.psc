@@ -24,6 +24,9 @@ event OnTrackObjectReference(string eventName, string referenceAliasName, float 
         Debug.Trace("[SmartMarkers] " + eventName + ", " + referenceAliasName + ", target is null")
     endIf
     
+    _quest.SetActive(true)
+    _quest.SetObjectiveDisplayed(1, true)
+    
     ReferenceAlias refAlias = _quest.GetAliasByName(referenceAliasName) as ReferenceAlias
     if refAlias && target
         refAlias.ForceRefTo(target)
