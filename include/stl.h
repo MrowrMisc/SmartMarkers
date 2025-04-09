@@ -19,11 +19,11 @@ namespace stl {
         T::func = vtbl.write_vfunc(idx, T::thunk);
     }
 
-    template <std::size_t idx, class T>
-    void write_vfunc(REL::VariantID id) {
-        REL::Relocation<std::uintptr_t> vtbl{id};
-        T::func = vtbl.write_vfunc(idx, T::thunk);
-    }
+    // template <std::size_t idx, class T>
+    // void write_vfunc(REL::VariantID id) {
+    //     REL::Relocation<std::uintptr_t> vtbl{id};
+    //     T::func = vtbl.write_vfunc(idx, T::thunk);
+    // }
 
     template <class T>
     void write_thunk_jump(std::uintptr_t a_src) {

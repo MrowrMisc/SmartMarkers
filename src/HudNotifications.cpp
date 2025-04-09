@@ -268,4 +268,6 @@ char HUDNotifications_Update::thunk(RE::HUDNotifications* This) {
     return func(This);
 }
 
-void HUDNotifications_Update::Install() { stl::write_vfunc<0x1, HUDNotifications_Update>(RE::VTABLE_HUDNotifications[0]); }
+void HUDNotifications_Update::Install() {
+    // stl::write_vfunc<0x1, HUDNotifications_Update>(RE::VTABLE_HUDNotifications[0]);
+}

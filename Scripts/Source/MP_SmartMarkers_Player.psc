@@ -1,6 +1,9 @@
 scriptName MP_SmartMarkers_Player extends ReferenceAlias
 
+Quest _quest;
+
 event OnInit()
+    _quest = GetOwningQuest()
     Initialize()    
 endEvent
 
@@ -9,42 +12,29 @@ event OnPlayerLoadGame()
 endEvent
 
 function Initialize()
-    RegisterForModEvent("MP_SmartMarkers_TrackActor", "OnTrackActor")
-    RegisterForModEvent("MP_SmartMarkers_StopTrackingActor", "OnStopTrackingActor")
+    RegisterForModEvent("MP_SmartMarkers_TrackObject", "OnTrackObjectReference")
+    RegisterForModEvent("MP_SmartMarkers_StopTrackingObject", "OnStopTrackingObjectReference")
 endFunction
 
-event OnTrackActor(string eventName, string referenceAliasName, float objectiveNumberFloat, Form targetForm)
-    int objectiveNumber = objectiveNumberFloat as int
-    Actor target = targetForm as Actor
+event OnTrackObjectReference(string eventName, string referenceAliasName, float _number, Form targetForm)
+    ObjectReference target = targetForm as ObjectReference
+    if target
+        Debug.Trace("[SmartMarkers] " + eventName + ", " + referenceAliasName + ", target is " + target.GetFormID())
+    else
+        Debug.Trace("[SmartMarkers] " + eventName + ", " + referenceAliasName + ", target is null")
+    endIf
     
-    Debug.Trace("OnTrackActor: " + eventName + ", " + referenceAliasName + ", " + objectiveNumber + ", " + target)
-    
-    ; Don't always do this, they'll want to be able to disable this as they want!
-    GetOwningQuest().SetActive(true)
-    
-    ReferenceAlias refAlias = GetOwningQuest().GetAliasByName(referenceAliasName) as ReferenceAlias
-    
+    ReferenceAlias refAlias = _quest.GetAliasByName(referenceAliasName) as ReferenceAlias
     if refAlias && target
         refAlias.ForceRefTo(target)
-
-        if ! GetOwningQuest().IsObjectiveDisplayed(objectiveNumber)
-            GetOwningQuest().SetObjectiveDisplayed(objectiveNumber, true)
-        endIf
     endIf
 endEvent
 
-event OnStopTrackingActor(string eventName, string referenceAliasName, float objectiveNumberFloat, Form targetForm)
-    int objectiveNumber = objectiveNumberFloat as int
+event OnStopTrackingObjectReference(string eventName, string referenceAliasName, float _number, Form targetForm)
+    Debug.Trace("[SmartMarkers] " + eventName + ", " + referenceAliasName)
     
-    Debug.Trace("OnStopTrackingActor: " + eventName + ", " + referenceAliasName + ", " + objectiveNumber)
-    
-    ReferenceAlias refAlias = GetOwningQuest().GetAliasByName(referenceAliasName) as ReferenceAlias
-    
+    ReferenceAlias refAlias = _quest.GetAliasByName(referenceAliasName) as ReferenceAlias
     if refAlias
         refAlias.TryToReset()
-        
-        if GetOwningQuest().IsObjectiveDisplayed(objectiveNumber)
-            GetOwningQuest().SetObjectiveDisplayed(objectiveNumber, false)
-        endIf
     endIf
 endEvent

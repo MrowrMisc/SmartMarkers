@@ -1,0 +1,8 @@
+[Plugin_Quest_Info]
+quest_editor_id = "MP_SmartMarkers_Quest"
+objective_count = 20
+reference_aliases_per_objective = 50
+
+[SKSE_Events_Names]
+start_tracking_object = "MP_SmartMarkers_TrackObject"
+stop_tracking_object = "MP_SmartMarkers_StopTrackingObject"

@@ -3,7 +3,7 @@ add_rules("mode.debug", "mode.release")
 set_languages("c++23")
 
 option("commonlib")
-    set_default("skyrim-commonlib-ng")
+    set_default("skyrim-commonlib-ae")
 option_end()
 
 if not has_config("commonlib") then
@@ -20,7 +20,8 @@ add_requires(get_config("commonlib"))
 add_requires("SkyrimScripting.Plugin", { configs = { commonlib = get_config("commonlib") } })
 add_requires(
     "collections",
-    "unordered_dense"
+    "unordered_dense",
+    "toml++"
 )
 
 target("Build Papyrus Scripts")
@@ -38,6 +39,7 @@ skse_plugin({
         "SkyrimScripting.Plugin",
         "collections",
         "unordered_dense",
+        "toml++",
     },
     deps = {"Build Papyrus Scripts"},
     mod_files = {"SmartMarkers.esp", "Scripts", "SKSE"},

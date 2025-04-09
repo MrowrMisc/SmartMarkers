@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "Constants.h"
+#include "SearchForReferences.h"
 
 std::string MakePascalCase(std::string_view text) {
     std::string result;
@@ -59,6 +60,11 @@ void SetObjectiveDisplayText(RE::TESQuest* quest, std::uint32_t objectiveIndex, 
 EventSink* EventSink::GetSingleton() {
     static EventSink singleton;
     return &singleton;
+}
+
+RE::BSEventNotifyControl EventSink::ProcessEvent(RE::InputEvent* const* eventPtr, RE::BSTEventSource<RE::InputEvent*>*) {
+    SearchForReferences::UpdateNearbyMarkers();
+    return RE::BSEventNotifyControl::kContinue;
 }
 
 RE::BSEventNotifyControl EventSink::ProcessEvent(const RE::TESDeathEvent* event, RE::BSTEventSource<RE::TESDeathEvent>* eventSource) {
@@ -146,12 +152,14 @@ RE::BSEventNotifyControl EventSink::ProcessEvent(const RE::TESCombatEvent* event
 }
 
 void EventSink::Install() {
-    auto* eventSource = RE::ScriptEventSourceHolder::GetSingleton();
-    if (eventSource) {
+    if (auto* eventSource = RE::ScriptEventSourceHolder::GetSingleton()) {
         eventSource->AddEventSink<RE::TESDeathEvent>(EventSink::GetSingleton());
         eventSource->AddEventSink<RE::TESActivateEvent>(EventSink::GetSingleton());
         eventSource->AddEventSink<RE::TESCombatEvent>(EventSink::GetSingleton());
     } else {
         Log("Failed to get event source holder");
     }
+
+    if (auto* deviceManager = RE::BSInputDeviceManager::GetSingleton()) deviceManager->AddEventSink(EventSink::GetSingleton());
+    else Log("Failed to get input device manager");
 }
