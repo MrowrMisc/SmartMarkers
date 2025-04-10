@@ -13,6 +13,7 @@ form_type = "ACHR"
 [[Journal.finding_things.objective]]
 name = "Container"
 form_type = "CONT"
+non_empty_inventory = true
 
 [[Journal.finding_things.objective]]
 name = "Keys"
