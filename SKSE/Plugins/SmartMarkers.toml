@@ -6,18 +6,19 @@ quest = ["SmartMarkers.esp", 0x800]
 objective_count = 20
 reference_aliases_per_objective = 100
 
-[[Journal.finding_things.objective]]
-name = "Body"
-form_type = "ACHR"
+# [[Journal.finding_things.objective]]
+# name = "Body"
+# form_type = "ACHR"
+# is_dead = true
 
 [[Journal.finding_things.objective]]
 name = "Container"
-form_type = "CONT"
+base_form_type = "CONT"
 non_empty_inventory = true
 
-[[Journal.finding_things.objective]]
-name = "Keys"
-form_type = "KEYM"
+# [[Journal.finding_things.objective]]
+# name = "Keys"
+# form_type = "KEYM"
 
 ###############################################
 

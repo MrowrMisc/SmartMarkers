@@ -19,7 +19,13 @@ bool ReferenceMatchesObjective(RE::TESObjectREFR* ref, Configuration::Types::Jou
     if (!objective) return false;
     if (!ref) return false;
     if (ref->IsDeleted()) return false;
-    if (!objective->MatchesFormType(ref->GetFormType())) return false;
+    if (!objective->form_types.empty() && !objective->form_types.contains(ref->GetFormType())) return false;
     if (objective->non_empty_inventory && !DoesReferenceHaveNonEmptyInventory(ref)) return false;
+    if (objective->is_dead && !ref->IsDead()) return false;
+    if (!objective->base_form_types.empty()) {
+        if (auto* baseForm = ref->GetBaseObject()) {
+            if (!objective->base_form_types.contains(baseForm->GetFormType())) return false;
+        }
+    }
     return true;
 }

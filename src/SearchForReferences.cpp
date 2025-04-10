@@ -18,11 +18,12 @@ namespace SearchForReferences {
         std::vector<SKSE::ModCallbackEvent>                                                   sentModEvents;      // For now, keep forever LOL
         constexpr std::chrono::seconds                                                        updateInterval(2);  // Moved before lastRunTime
         std::atomic<bool>                                                                     isRunning(false);
+        std::atomic<bool>                                                                     isDisabled{false};
         std::atomic<std::chrono::steady_clock::time_point>                                    lastRunTime(std::chrono::steady_clock::now() - updateInterval);
         collections_map<Configuration::Types::JournalEntryObjective*, MarkerDataForObjective> markerDataForObjectives;
 
         inline void TellPapyrusToTrackReference(RE::TESObjectREFR* ref, MarkerDataForObjective& markerDataForObjective) {
-            if (markerDataForObjective.currentlyTrackingCount >= 10) {
+            if (markerDataForObjective.currentlyTrackingCount >= 50) {  // markerDataForObjective.objective....
                 Log("[{}] Already tracking max number of actors. Not tracking.", ref->GetName());
                 return;
             }
@@ -60,7 +61,11 @@ namespace SearchForReferences {
         lastRunTime.store(std::chrono::steady_clock::now() - updateInterval);
         for (auto& [journalEntryId, journalEntry] : Configuration::GetConfig()->journal_entries) {
             for (auto& objective : journalEntry.objectives) {
-                markerDataForObjectives.emplace(&objective, MarkerDataForObjective{});
+                auto result = markerDataForObjectives.emplace(&objective, MarkerDataForObjective{});
+                if (result.second) {
+                    auto& markerDataForObjective     = result.first->second;
+                    markerDataForObjective.objective = &objective;
+                }
             }
         }
         Log("All collections reset");
@@ -93,12 +98,13 @@ namespace SearchForReferences {
     }
 
     void UpdateNearbyMarkers() {
+        if (isDisabled) return;
         if (isRunning.exchange(true)) return;
 
         auto maxDistance = Configuration::GetConfig()->general.search_radius;
         if (maxDistance <= 0) {
             Log("Search radius is 0. Not searching.");
-            isRunning.store(false);
+            isDisabled = true;
             return;
         }
 
@@ -135,16 +141,20 @@ namespace SearchForReferences {
 
         collections_map<MarkerDataForObjective*, collections_set<RE::TESObjectREFR*>> newlyDiscoveredNearbyObjectsToMark;
 
+        auto searchedReferenceCount = 0;
         tes->ForEachReferenceInRange(player, maxDistance, [&](RE::TESObjectREFR* ref) {
+            searchedReferenceCount++;
             if (ref == player) return RE::BSContainer::ForEachResult::kContinue;
             for (auto& [objective, markerData] : markerDataForObjectives) {
                 if (ReferenceMatchesObjective(ref, objective)) {
+                    Trace("Found reference '{}' {:x} matching objective '{}'", ref->GetName(), ref->GetFormID(), objective->name.c_str());
                     newlyDiscoveredNearbyObjectsToMark[&markerData].insert(ref);
                     TellPapyrusToTrackReference(ref, markerData);
                 }
             }
             return RE::BSContainer::ForEachResult::kContinue;
         });
+        Debug("Searched {} references in range", searchedReferenceCount);
 
         for (auto& [objective, markerData] : markerDataForObjectives) {
             auto found = newlyDiscoveredNearbyObjectsToMark.find(&markerData);

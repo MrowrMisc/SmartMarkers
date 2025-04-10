@@ -22,9 +22,10 @@ namespace Configuration {
             std::string                   name;
             collections_set<std::string>  form_type_names;
             collections_set<RE::FormType> form_types;
+            collections_set<std::string>  base_form_type_names;
+            collections_set<RE::FormType> base_form_types;
             bool                          non_empty_inventory{false};
-
-            inline bool MatchesFormType(const RE::FormType& formType) const { return form_types.empty() || form_types.contains(formType); }
+            bool                          is_dead{false};
         };
 
         struct JournalEntry {
