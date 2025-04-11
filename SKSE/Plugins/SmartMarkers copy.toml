@@ -2,6 +2,7 @@ search_radius = 1000.0
 
 [Journal.finding_things]
 name = "Finding Things"
+# quest = ["SmartMarkers.esp", 0x800]
 quest = "MP_SmartMarkers_Quest"
 objective_count = 20
 reference_aliases_per_objective = 100

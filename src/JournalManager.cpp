@@ -24,7 +24,7 @@ namespace JournalManager {
     void UpdateAllObjectiveNamesFromConfiguration() {
         Log("Updating all objective names from configuration");
         for (auto& [id, journalEntry] : Configuration::GetConfig()->journal_entries) {
-            if (auto* quest = journalEntry.quest.ResolveForm<RE::TESQuest>()) {
+            if (auto* quest = RE::TESForm::LookupByEditorID<RE::TESQuest>(journalEntry.quest)) {
                 quest->fullName = journalEntry.displayName;
                 Log("Set {} quest name to {}", quest->GetFormEditorID(), journalEntry.displayName.c_str());
                 auto objectiveIndex = 0;
@@ -33,8 +33,8 @@ namespace JournalManager {
                         questObjective->displayText = objective.name;
                         Log("Set {} objective {} name to {}", quest->GetFormEditorID(), objectiveIndex, objective.name.c_str());
                     }
+                    objectiveIndex++;
                 }
-                objectiveIndex++;
             }
         }
     }

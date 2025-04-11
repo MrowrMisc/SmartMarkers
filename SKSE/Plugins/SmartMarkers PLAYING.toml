@@ -1,0 +1,13 @@
+[[Journal]]
+name = "Finding Things"
+quest = "MP_SmartMarkers_Quest"
+
+[[Objective]]
+name = "Keys"
+form_type = "KEYM"
+search_in_container = true
+
+[[Objective]]
+name = "Containers"
+form_type = "CONT"
+non_empty_inventory = true

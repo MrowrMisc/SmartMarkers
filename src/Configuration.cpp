@@ -38,15 +38,9 @@ namespace Configuration {
                             Debug("[Configuration] Loaded Journal[{}].name: {}", key.data(), name->c_str());
                         }
 
-                        if (auto quest = entry->get("quest")->as_array()) {
-                            if (quest->size() == 2) {
-                                journalEntry.quest.pluginName  = quest->get(0)->value<std::string>().value_or("");
-                                journalEntry.quest.localFormId = quest->get(1)->value<RE::FormID>().value_or(0);
-                                Debug(
-                                    "[Configuration] Loaded Journal[{}].quest: pluginName={}, formId={}", key.data(), journalEntry.quest.pluginName.c_str(),
-                                    journalEntry.quest.localFormId
-                                );
-                            }
+                        if (auto quest = entry->get("quest")->value<std::string>()) {
+                            journalEntry.quest = *quest;  // Updated to handle quest as a string
+                            Debug("[Configuration] Loaded Journal[{}].quest: {}", key.data(), quest->c_str());
                         }
 
                         journalEntry.objective_count = entry->get("objective_count")->value<std::uint32_t>().value_or(0);
