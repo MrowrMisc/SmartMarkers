@@ -22,12 +22,12 @@ non_empty_inventory = true
 
 ###############################################
 
-[Journal.finding_more_things]
-id = "JournalEntry2"
-name = "Finding More Things"
-quest = ["SmartMarkers_AdditionalMarkers.esp", 0x800]
-objective_count = 20
-reference_aliases_per_objective = 100
+# [Journal.finding_more_things]
+# id = "JournalEntry2"
+# name = "Finding More Things"
+# quest = ["SmartMarkers_AdditionalMarkers.esp", 0x800]
+# objective_count = 20
+# reference_aliases_per_objective = 100
 
 
 [SKSE_Mod_Events_Names]

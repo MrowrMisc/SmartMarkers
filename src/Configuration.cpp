@@ -40,11 +40,11 @@ namespace Configuration {
 
                         if (auto quest = entry->get("quest")->as_array()) {
                             if (quest->size() == 2) {
-                                journalEntry.quest.pluginName = quest->get(0)->value<std::string>().value_or("");
-                                journalEntry.quest.formId     = quest->get(1)->value<RE::FormID>().value_or(0);
+                                journalEntry.quest.pluginName  = quest->get(0)->value<std::string>().value_or("");
+                                journalEntry.quest.localFormId = quest->get(1)->value<RE::FormID>().value_or(0);
                                 Debug(
                                     "[Configuration] Loaded Journal[{}].quest: pluginName={}, formId={}", key.data(), journalEntry.quest.pluginName.c_str(),
-                                    journalEntry.quest.formId
+                                    journalEntry.quest.localFormId
                                 );
                             }
                         }

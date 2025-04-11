@@ -3,9 +3,13 @@
 #include "Configuration.h"
 #include "EventSink.h"
 #include "HudNotifications.h"
+#include "JournalManager.h"
 #include "SearchForReferences.h"
 
-void OnGameLoad() { SearchForReferences::ResetAllCollections(); }
+void OnGameLoad() {
+    SearchForReferences::ResetAllCollections();
+    JournalManager::UpdateAllObjectiveNamesFromConfiguration();
+}
 
 SKSEPlugin_OnDataLoaded {
     Configuration::ReloadConfig();

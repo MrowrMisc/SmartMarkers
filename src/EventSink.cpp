@@ -4,6 +4,7 @@
 #include <SkyrimScripting/Logging.h>
 #include <collections.h>
 
+#include "JournalManager.h"
 #include "SearchForReferences.h"
 
 RE::TESObjectREFR* mostRecentReferenceUnderCrosshair = nullptr;
@@ -20,15 +21,42 @@ RE::BSEventNotifyControl EventSink::ProcessEvent(RE::InputEvent* const* eventPtr
 
 RE::BSEventNotifyControl EventSink::ProcessEvent(const RE::MenuOpenCloseEvent* event, RE::BSTEventSource<RE::MenuOpenCloseEvent>*) {
     // TODO: put menu name(s) into toml config file
-    if (event->opening)
-        if (event->menuName == "LootMenu") SearchForReferences::DisallowObjectFromBeingMarked(mostRecentReferenceUnderCrosshair);
+    if (event->opening) {
+        if (event->menuName == "LootMenu") {
+            if (mostRecentReferenceUnderCrosshair) SearchForReferences::DisallowObjectFromBeingMarked(mostRecentReferenceUnderCrosshair);
+        } else if (event->menuName == RE::JournalMenu::MENU_NAME) {
+            // FOR DEBUGGING (because we're COC-ing and need to add COC detection still)
+            JournalManager::UpdateAllObjectiveNamesFromConfiguration();
+        } else if (event->menuName == RE::MapMenu::MENU_NAME) {
+            // if (auto* player = RE::PlayerCharacter::GetSingleton()) {
+            //     for (auto markerPtr : player->currentMapMarkers) {
+            //         if (auto marker = markerPtr.get()) {
+            //             if (auto* extraMarker = marker->extraList.GetByType<RE::ExtraMapMarker>()) {
+            //                 if (auto* mapMarkerData = extraMarker->mapData) {
+            //                     mapMarkerData->locationName.fullName = "I CHANGED THE NAME";
+            //                     Log("Map marker name changed to: {}", mapMarkerData->locationName.fullName.c_str());
+            //                     marker->SetDisplayName("Marker Display Name!", true);
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+        }
+    }
     return RE::BSEventNotifyControl::kContinue;
 }
 
 RE::BSEventNotifyControl EventSink::ProcessEvent(const SKSE::CrosshairRefEvent* event, RE::BSTEventSource<SKSE::CrosshairRefEvent>*) {
-    if (event->crosshairRef)
-        if (auto* ref = event->crosshairRef->As<RE::TESObjectREFR>())
-            if (ref) mostRecentReferenceUnderCrosshair = ref;
+    if (event->crosshairRef) {
+        if (auto* ref = event->crosshairRef->As<RE::TESObjectREFR>()) {
+            mostRecentReferenceUnderCrosshair = ref;
+            Trace("CrosshairRef is a TESObjectREFR: {:x} {}", ref->GetFormID(), ref->GetFormEditorID());
+            return RE::BSEventNotifyControl::kContinue;
+        } else {
+            Error("CrosshairRef is not a TESObjectREFR");
+        }
+    }
+    mostRecentReferenceUnderCrosshair = nullptr;
     return RE::BSEventNotifyControl::kContinue;
 }
 

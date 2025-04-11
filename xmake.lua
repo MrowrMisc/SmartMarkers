@@ -42,5 +42,6 @@ skse_plugin({
         "toml++",
     },
     deps = {"Build Papyrus Scripts"},
-    mod_files = {"SmartMarkers.esp", "SmartMarkers_AdditionalMarkers.esp", "Scripts", "SKSE"},
+    mod_files = {"SmartMarkers.esp", "Scripts", "SKSE"},
+    -- mod_files = {"SmartMarkers.esp", "SmartMarkers_AdditionalMarkers.esp", "Scripts", "SKSE"},
 })
