@@ -1,0 +1,53 @@
+<GRUP label="QUST" groupType="0" day="139" month="50" lastUserID="0" currentUserID="0" unknown="0x00000000">
+    <QUST flags="0x00000000" id="00000800" day="0" month="0" lastUserID="0" currentUserID="0" version="44" unknown="0x0000">
+      <EDID>SM_MultiQuest_01</EDID>
+      <FULL>MultiQuest 1</FULL>
+      <DNAM>
+        <struct flags="0x0111" priority="0" unknown0="0xff" unknown1="0x00000000" type="6" />
+      </DNAM>
+      <NEXT />
+      <QOBJ>1</QOBJ>
+      <FNAM>0</FNAM>
+      <NNAM>Objective for MultiQuest 1</NNAM>
+      <QSTA>
+        <struct alias="2050" flags="0x00000000" />
+      </QSTA>
+      <CTDA>
+        <operator>0x00</operator>
+        <unknown0>0x00,0x00,0x00</unknown0>
+        <comparisonValueFloat>1</comparisonValueFloat>
+        <functionIndex>566</functionIndex>
+        <padding>0x00,0x00</padding>
+        <param1>0x00000802</param1>
+        <param2>0x00000000</param2>
+        <runOnType>0</runOnType>
+        <reference>00000000</reference>
+        <unknown1>0xffffffff</unknown1>
+      </CTDA>
+      
+      
+      
+   <QUST flags="0x00000000" id="00000866" day="0" month="0" lastUserID="0" currentUserID="0" version="44" unknown="0x0000">
+      <EDID>SM_MultiQuest_02</EDID>
+      <FULL>MultiQuest 2</FULL>
+      <DNAM>
+        <struct flags="0x0111" priority="0" unknown0="0xff" unknown1="0x00000000" type="0" />
+      </DNAM>
+      <NEXT />
+      <QOBJ>1</QOBJ>
+      <FNAM>0</FNAM>
+      <NNAM>Objective for MultiQuest 2</NNAM>
+      <QSTA>
+        <struct alias="2152" flags="0x00000000" />
+      </QSTA>
+      <CTDA>
+        <operator>0x00</operator>
+        <unknown0>0x00,0x00,0x00</unknown0>
+        <comparisonValueFloat>1</comparisonValueFloat>
+        <functionIndex>566</functionIndex>
+        <padding>0x00,0x00</padding>
+        <param1>0x00000868</param1>
+        <param2>0x00000000</param2>
+        <runOnType>0</runOnType>
+        <reference>00000000</reference>
+        <unknown1>0xffffffff</unknown1>

@@ -1,0 +1,10 @@
+2048 forms to work with.
+
+Miscellaneous
+20 categories x 50 references = 1000 references
+
+Individual Quests (with 1 objective a piece)
+10 categories x 50 references = 500 references
+
+Individual Quests (with 20 objectives a piece)
+2 quests x 20 objectives x 20 references = 800 references

@@ -14,49 +14,76 @@ from esx_lib import (
     write_plugin_to_xml,
 )
 
-# Naming format constants
-QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_{quest_idx:02d}"
-QUEST_FULL_NAME_FORMAT = "Smart Markers {quest_idx}"
-OBJECTIVE_NAME_FORMAT = "Objective {objective_index}"
-ALIAS_NAME_FORMAT = "Quest{quest_idx}_Objective{objective_index}_Reference{target_idx}"
-QUEST_TYPE = 0  # Regular quest
+# --- Configuration Constants ---
 
-# QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Misc_{quest_idx:02d}"
-# QUEST_FULL_NAME_FORMAT = "Smart Markers Misc {quest_idx}"
-# OBJECTIVE_NAME_FORMAT = "Objective {objective_index}"
-# ALIAS_NAME_FORMAT = "Quest{quest_idx}_Objective{objective_index}_Reference{target_idx}"
-# QUEST_TYPE = 6  # Miscellaneous quest type
+# Type 1: Miscellaneous Quests (Single Objective)
+MISC_QUEST_COUNT = 20
+MISC_OBJECTIVES_PER_QUEST = 1
+MISC_ALIASES_PER_OBJECTIVE = 50
+MISC_QUEST_TYPE = 6
+MISC_QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Misc_{quest_idx:02d}"
+MISC_QUEST_FULL_NAME_FORMAT = "Smart Markers Misc {quest_idx}"
+MISC_OBJECTIVE_NAME_FORMAT = "Misc Objective {objective_index}"
+MISC_ALIAS_NAME_FORMAT = "Obj{objective_index}_Ref{target_idx}"
+
+# Type 2: Regular Quests (Single Objective)
+REG_SINGLE_QUEST_COUNT = 5
+REG_SINGLE_OBJECTIVES_PER_QUEST = 1
+REG_SINGLE_ALIASES_PER_OBJECTIVE = 20
+REG_SINGLE_QUEST_TYPE = 0
+REG_SINGLE_QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Regular_Single_{quest_idx:02d}"
+REG_SINGLE_QUEST_FULL_NAME_FORMAT = "Smart Markers Regular Single {quest_idx}"
+REG_SINGLE_OBJECTIVE_NAME_FORMAT = "Reg Single Objective {objective_index}"
+REG_SINGLE_ALIAS_NAME_FORMAT = "Obj{objective_index}_Ref{target_idx}"
+
+# Type 3: Regular Quests (Multiple Objectives)
+REG_MULTI_QUEST_COUNT = 2
+REG_MULTI_OBJECTIVES_PER_QUEST = 20
+REG_MULTI_ALIASES_PER_OBJECTIVE = 20
+REG_MULTI_QUEST_TYPE = 0
+REG_MULTI_QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Regular_Multiple_{quest_idx:02d}"
+REG_MULTI_QUEST_FULL_NAME_FORMAT = "Smart Markers Regular Multi {quest_idx}"
+REG_MULTI_OBJECTIVE_NAME_FORMAT = "Reg Multi Objective {objective_index}"
+REG_MULTI_ALIAS_NAME_FORMAT = "Obj{objective_index}_Ref{target_idx}"
 
 
 def create_multi_quest_plugin(
     output_file: str,
-    num_quests: int = 20,
-    aliases_per_objective: int = 100,
     pretty_output: bool = False,  # Keep False for compatibility
 ) -> bool:
     """
-    Create an ESX plugin file with multiple quests, each with one objective with multiple aliases
+    Create an ESX plugin file with multiple quests based on defined constants.
 
     Args:
         output_file: Path to output ESX file
-        num_quests: Number of quests to create (default: 20)
-        aliases_per_objective: Number of aliases per objective (default: 100)
         pretty_output: Whether to format XML output with indentation (default: False)
 
     Returns:
         bool: Success status
     """
-    # Check if we'll exceed ESL limits
-    total_aliases = num_quests * (aliases_per_objective + 1)  # +1 for PlayerRef
-    total_form_ids = total_aliases + num_quests  # +1 for each quest
+    # Calculate total requirements for ESL check
+    total_quests = MISC_QUEST_COUNT + REG_SINGLE_QUEST_COUNT + REG_MULTI_QUEST_COUNT
+    total_misc_aliases = MISC_QUEST_COUNT * (
+        1 + MISC_OBJECTIVES_PER_QUEST * MISC_ALIASES_PER_OBJECTIVE
+    )  # +1 PlayerRef per quest
+    total_reg_single_aliases = REG_SINGLE_QUEST_COUNT * (
+        1 + REG_SINGLE_OBJECTIVES_PER_QUEST * REG_SINGLE_ALIASES_PER_OBJECTIVE
+    )
+    total_reg_multi_aliases = REG_MULTI_QUEST_COUNT * (
+        1 + REG_MULTI_OBJECTIVES_PER_QUEST * REG_MULTI_ALIASES_PER_OBJECTIVE
+    )
+    total_aliases = (
+        total_misc_aliases + total_reg_single_aliases + total_reg_multi_aliases
+    )
+    total_form_ids = total_quests + total_aliases
 
+    # Check if we'll exceed ESL limits
     if total_form_ids > 2048:
         print(
             f"ERROR: Configuration would require {total_form_ids} form IDs, exceeding ESL limit of 2048"
         )
-        print(
-            f"Consider reducing num_quests ({num_quests}) or aliases_per_objective ({aliases_per_objective})"
-        )
+        # Suggest reducing counts if over limit
+        print("Consider reducing counts in the configuration constants.")
         return False
 
     # Create the plugin with version attribute
@@ -99,85 +126,203 @@ def create_multi_quest_plugin(
         grup_attrib
     )  # Update attributes on the existing/created group
 
-    # Track total aliases for reporting
+    # Track total aliases and quests for reporting
     total_alias_count = 0
     created_quests = []  # Store created quests to count later
+    quest_global_index = 0  # To ensure unique quest indices for naming if needed
 
-    # Create all quests manually instead of using QuestBuilder to ensure proper form ID handling
-    for quest_idx in range(1, num_quests + 1):
-        # Allocate quest form ID
-        quest_form_id = form_manager.allocate_next_id()
-        quest_form_id_hex = f"{quest_form_id:08x}"
-
-        # Create quest editor ID and name using formats
-        quest_name = QUEST_FULL_NAME_FORMAT.format(quest_idx=quest_idx)
-        quest_editor_id = QUEST_EDITOR_ID_FORMAT.format(quest_idx=quest_idx)
-
-        print(f"\nCreating quest {quest_idx}/{num_quests}: {quest_name}")
-        print(f"  Form ID: 0x{quest_form_id:x}")
-
-        # Create quest record with attributes
-        quest_attrib = {
-            "id": quest_form_id_hex,
-            "flags": "0x00000000",
-            "day": "0",
-            "month": "0",
-            "lastUserID": "0",
-            "currentUserID": "0",
-            "version": "44",
-            "unknown": "0x0000",
-        }
-        quest = ESXQuest(tag="QUST", attrib=quest_attrib)
-        quest.editor_id = quest_editor_id  # Set editor_id property directly
-
-        # Add basic quest elements
-        quest.append(ESXElement("EDID", text=quest_editor_id))
-        quest.append(ESXElement("FULL", text=quest_name))
-
-        # Add DNAM element for quest type (6 = Miscellaneous)
-        dnam = ESXElement("DNAM")
-        dnam_struct_attrib = {
-            "flags": "0x0111",  # Example flags, adjust if needed
-            "priority": "0",
-            "unknown0": "0xff",
-            "unknown1": "0x00000000",
-            "type": str(QUEST_TYPE),  # Set quest type to Miscellaneous
-        }
-        dnam.append(ESXElement("struct", attrib=dnam_struct_attrib))
-        quest.append(dnam)
-
-        # Add quest to group
+    # --- Loop 1: Miscellaneous Quests ---
+    print("\n--- Creating Miscellaneous Quests ---")
+    for i in range(MISC_QUEST_COUNT):
+        quest_global_index += 1
+        quest_idx = i + 1  # Index specific to this type
+        quest, aliases_added = _create_quest_structure(
+            form_manager,
+            quest_idx,
+            quest_global_index,
+            MISC_QUEST_TYPE,
+            MISC_OBJECTIVES_PER_QUEST,
+            MISC_ALIASES_PER_OBJECTIVE,
+            MISC_QUEST_EDITOR_ID_FORMAT,
+            MISC_QUEST_FULL_NAME_FORMAT,
+            MISC_OBJECTIVE_NAME_FORMAT,
+            MISC_ALIAS_NAME_FORMAT,
+        )
         quest_group.add_record(quest)
         created_quests.append(quest)
+        total_alias_count += aliases_added
 
-        # Add player reference alias
-        player_ref_id = form_manager.allocate_next_id()
-        print(f"  Added PlayerRef alias with form ID: 0x{player_ref_id:x}")
-
-        # Create player ref alias elements
-        quest.append(ESXElement("ALST", text=str(player_ref_id)))
-        quest.append(ESXElement("ALID", text="PlayerRef"))
-        quest.append(ESXElement("FNAM", text="0"))
-        quest.append(ESXElement("ALFR", text="00000014"))  # Player reference
-        quest.append(ESXElement("VTCK", text="00000000"))
-        quest.append(ESXElement("ALED"))
-
-        # Create an alias object and add it to quest
-        player_alias = ESXAlias(
-            index=player_ref_id, name="PlayerRef", flags="0", ref_id="00000014"
+    # --- Loop 2: Regular Single-Objective Quests ---
+    print("\n--- Creating Regular Single-Objective Quests ---")
+    for i in range(REG_SINGLE_QUEST_COUNT):
+        quest_global_index += 1
+        quest_idx = i + 1  # Index specific to this type
+        quest, aliases_added = _create_quest_structure(
+            form_manager,
+            quest_idx,
+            quest_global_index,
+            REG_SINGLE_QUEST_TYPE,
+            REG_SINGLE_OBJECTIVES_PER_QUEST,
+            REG_SINGLE_ALIASES_PER_OBJECTIVE,
+            REG_SINGLE_QUEST_EDITOR_ID_FORMAT,
+            REG_SINGLE_QUEST_FULL_NAME_FORMAT,
+            REG_SINGLE_OBJECTIVE_NAME_FORMAT,
+            REG_SINGLE_ALIAS_NAME_FORMAT,
         )
-        quest.add_alias(player_alias)
-        total_alias_count += 1
+        quest_group.add_record(quest)
+        created_quests.append(quest)
+        total_alias_count += aliases_added
 
-        # Add one objective
-        objective_index = 1
+    # --- Loop 3: Regular Multi-Objective Quests ---
+    print("\n--- Creating Regular Multi-Objective Quests ---")
+    for i in range(REG_MULTI_QUEST_COUNT):
+        quest_global_index += 1
+        quest_idx = i + 1  # Index specific to this type
+        quest, aliases_added = _create_quest_structure(
+            form_manager,
+            quest_idx,
+            quest_global_index,
+            REG_MULTI_QUEST_TYPE,
+            REG_MULTI_OBJECTIVES_PER_QUEST,
+            REG_MULTI_ALIASES_PER_OBJECTIVE,
+            REG_MULTI_QUEST_EDITOR_ID_FORMAT,
+            REG_MULTI_QUEST_FULL_NAME_FORMAT,
+            REG_MULTI_OBJECTIVE_NAME_FORMAT,
+            REG_MULTI_ALIAS_NAME_FORMAT,
+        )
+        quest_group.add_record(quest)
+        created_quests.append(quest)
+        total_alias_count += aliases_added
+
+    # Calculate next available object ID AFTER all allocations
+    next_object_id_val = form_manager.allocate_next_id()
+    # We don't actually want to use this ID, just get its value, so remove it
+    form_manager.used_ids.remove(next_object_id_val)
+    next_object_id_hex = f"{next_object_id_val:08x}"
+
+    # Create and insert HEDR element into TES4
+    hedr = ESXElement("HEDR")
+    hedr_struct_attrib = {
+        "version": "1.71000004",
+        "numRecords": str(len(created_quests)),  # Use actual count of quests
+        "nextObjectID": next_object_id_hex,
+    }
+    hedr.append(ESXElement("struct", attrib=hedr_struct_attrib))
+
+    # Insert HEDR as the first element within TES4
+    tes4.elements.insert(0, hedr)
+    hedr.parent = tes4  # Set parent manually
+
+    # Validate the plugin
+    is_compatible, form_count, esl_errors = validate_esl_compatibility(plugin)
+
+    print("\n=== Plugin Creation Summary ===")
+    print(f"Total quests created: {len(created_quests)}")
+    print(f"  - Misc (Type {MISC_QUEST_TYPE}): {MISC_QUEST_COUNT}")
+    print(f"  - Reg Single (Type {REG_SINGLE_QUEST_TYPE}): {REG_SINGLE_QUEST_COUNT}")
+    print(f"  - Reg Multi (Type {REG_MULTI_QUEST_TYPE}): {REG_MULTI_QUEST_COUNT}")
+    print(f"Total aliases created: {total_alias_count}")
+    print(f"Total form IDs used: {form_manager.get_used_count()}")
+    print(f"ESL compatible: {is_compatible} (Used {form_count}/2048 FormIDs)")
+
+    if not is_compatible:
+        print("ESL compatibility errors:")
+        for error in esl_errors:
+            print(f"  - {error}")
+
+    # Write the plugin to file
+    write_plugin_to_xml(plugin, output_file, pretty=pretty_output)
+    print(f"\nWrote multi-quest plugin to {output_file}")
+
+    return True
+
+
+def _create_quest_structure(
+    form_manager: FormIDManager,
+    quest_idx: int,
+    quest_global_index: int,  # Use if unique naming across types is needed
+    quest_type: int,
+    objectives_per_quest: int,
+    aliases_per_objective: int,
+    quest_editor_id_format: str,
+    quest_full_name_format: str,
+    objective_name_format: str,
+    alias_name_format: str,
+) -> tuple[ESXQuest, int]:
+    """Helper function to create a single quest with its objectives and aliases."""
+    aliases_created_count = 0
+
+    # Allocate quest form ID
+    quest_form_id = form_manager.allocate_next_id()
+    quest_form_id_hex = f"{quest_form_id:08x}"
+
+    # Create quest editor ID and name using formats
+    # Using quest_idx (per type) for naming, adjust if global index is preferred
+    quest_name = quest_full_name_format.format(quest_idx=quest_idx)
+    quest_editor_id = quest_editor_id_format.format(quest_idx=quest_idx)
+
+    print(f"  Creating quest {quest_idx}: {quest_name} (Global: {quest_global_index})")
+    print(f"    Form ID: 0x{quest_form_id:x}, Type: {quest_type}")
+
+    # Create quest record with attributes
+    quest_attrib = {
+        "id": quest_form_id_hex,
+        "flags": "0x00000000",
+        "day": "0",
+        "month": "0",
+        "lastUserID": "0",
+        "currentUserID": "0",
+        "version": "44",
+        "unknown": "0x0000",
+    }
+    quest = ESXQuest(tag="QUST", attrib=quest_attrib)
+    quest.editor_id = quest_editor_id  # Set editor_id property directly
+
+    # Add basic quest elements
+    quest.append(ESXElement("EDID", text=quest_editor_id))
+    quest.append(ESXElement("FULL", text=quest_name))
+
+    # Add DNAM element for quest type
+    dnam = ESXElement("DNAM")
+    dnam_struct_attrib = {
+        "flags": "0x0111",  # Example flags, adjust if needed
+        "priority": "0",
+        "unknown0": "0xff",
+        "unknown1": "0x00000000",
+        "type": str(quest_type),
+    }
+    dnam.append(ESXElement("struct", attrib=dnam_struct_attrib))
+    quest.append(dnam)
+
+    # Add player reference alias
+    player_ref_id = form_manager.allocate_next_id()
+    # print(f"    Added PlayerRef alias with form ID: 0x{player_ref_id:x}") # Verbose
+
+    # Create player ref alias elements
+    quest.append(ESXElement("ALST", text=str(player_ref_id)))
+    quest.append(ESXElement("ALID", text="PlayerRef"))
+    quest.append(ESXElement("FNAM", text="0"))
+    quest.append(ESXElement("ALFR", text="00000014"))  # Player reference
+    quest.append(ESXElement("VTCK", text="00000000"))
+    quest.append(ESXElement("ALED"))
+
+    # Create an alias object and add it to quest
+    player_alias = ESXAlias(
+        index=player_ref_id, name="PlayerRef", flags="0", ref_id="00000014"
+    )
+    quest.add_alias(player_alias)
+    aliases_created_count += 1
+
+    total_quest_aliases_expected = 1  # Start with PlayerRef
+
+    # Add objectives
+    for obj_idx in range(1, objectives_per_quest + 1):
+        objective_index = obj_idx
         # Create objective name using format
-        objective_name = OBJECTIVE_NAME_FORMAT.format(
+        objective_name = objective_name_format.format(
             quest_name=quest_name, objective_index=objective_index
         )
-        print(
-            f"  Adding objective {objective_index} with {aliases_per_objective} targets"
-        )
+        # print(f"    Adding objective {objective_index} with {aliases_per_objective} targets") # Verbose
 
         # Add objective elements
         quest.append(ESXElement("QOBJ", text=str(objective_index)))
@@ -191,6 +336,7 @@ def create_multi_quest_plugin(
         # Track target IDs for reporting
         target_ids = []
         target_aliases = []
+        total_quest_aliases_expected += aliases_per_objective
 
         # Add target aliases for this objective
         for target_idx in range(1, aliases_per_objective + 1):
@@ -199,7 +345,7 @@ def create_multi_quest_plugin(
             target_ids.append(target_id)
 
             # Create alias name using format
-            alias_name = ALIAS_NAME_FORMAT.format(
+            alias_name = alias_name_format.format(
                 quest_idx=quest_idx,
                 objective_index=objective_index,
                 target_idx=target_idx,
@@ -239,93 +385,31 @@ def create_multi_quest_plugin(
             alias = ESXAlias(index=target_id, name=alias_name, flags="4242")
             quest.add_alias(alias)
             target_aliases.append(alias)
-            total_alias_count += 1
+            aliases_created_count += 1
 
-        # Add alias count element
-        total_quest_aliases = aliases_per_objective + 1  # +1 for PlayerRef
-        quest.append(ESXElement("ANAM", text=str(total_quest_aliases)))
+        # Report on created targets for this objective (optional, can be verbose)
+        # if target_ids:
+        #     print(f"      Objective {objective_index} Target ID range: 0x{target_ids[0]:x} - 0x{target_ids[-1]:x}")
+        #     print(f"      First few aliases: {[a.name for a in target_aliases[:5]]}")
 
-        # Report on created targets
-        if target_ids:
-            print(f"    Created objective: {objective.name}")
-            print(f"    Target ID range: 0x{target_ids[0]:x} - 0x{target_ids[-1]:x}")
-            print(f"    First few aliases: {[a.name for a in target_aliases[:5]]}")
+    # Add alias count element (ANAM)
+    quest.append(ESXElement("ANAM", text=str(total_quest_aliases_expected)))
 
-    # Calculate next available object ID AFTER all allocations
-    next_object_id_val = form_manager.allocate_next_id()
-    # We don't actually want to use this ID, just get its value, so remove it
-    form_manager.used_ids.remove(next_object_id_val)
-    next_object_id_hex = f"{next_object_id_val:08x}"
-
-    # Create and insert HEDR element into TES4
-    hedr = ESXElement("HEDR")
-    hedr_struct_attrib = {
-        "version": "1.71000004",
-        "numRecords": str(len(created_quests)),  # Use actual count of quests
-        "nextObjectID": next_object_id_hex,
-    }
-    hedr.append(ESXElement("struct", attrib=hedr_struct_attrib))
-
-    # Insert HEDR as the first element within TES4
-    tes4.elements.insert(0, hedr)
-    hedr.parent = tes4  # Set parent manually
-
-    # Validate the plugin
-    is_compatible, form_count, esl_errors = validate_esl_compatibility(plugin)
-
-    print("\n=== Plugin Creation Summary ===")
-    print(
-        f"Created {num_quests} quests, each with 1 objective and {aliases_per_objective} aliases"
-    )
-    print(f"Total aliases created: {total_alias_count}")
-    print(f"Total form IDs used: {form_manager.get_used_count()}")
-    print(f"ESL compatible: {is_compatible}")
-
-    if not is_compatible:
-        print("ESL compatibility errors:")
-        for error in esl_errors:
-            print(f"  - {error}")
-
-    # Write the plugin to file
-    write_plugin_to_xml(plugin, output_file, pretty=pretty_output)
-    print(f"\nWrote multi-quest plugin to {output_file}")
-
-    return True
+    return quest, aliases_created_count
 
 
 def main() -> None:
     """Main entry point"""
     output_file = "MultiQuestMarkers.esx"
-    num_quests = 20
-    aliases_per_objective = 100
 
-    # For testing use smaller numbers
-    # num_quests = 2
-    # aliases_per_objective = 10
-
-    # Override defaults if command line arguments are provided
+    # Command line arguments are no longer used for counts, only output file
     if len(sys.argv) > 1:
         output_file = sys.argv[1]
-    if len(sys.argv) > 2:
-        try:
-            num_quests = int(sys.argv[2])
-        except ValueError:
-            print(
-                f"Invalid value for num_quests: {sys.argv[2]}. Using default: {num_quests}"
-            )
-    if len(sys.argv) > 3:
-        try:
-            aliases_per_objective = int(sys.argv[3])
-        except ValueError:
-            print(
-                f"Invalid value for aliases_per_objective: {sys.argv[3]}. Using default: {aliases_per_objective}"
-            )
 
     try:
         create_multi_quest_plugin(
             output_file=output_file,
-            num_quests=num_quests,
-            aliases_per_objective=aliases_per_objective,
+            # Removed count arguments, using constants now
         )
     except Exception as e:
         print(f"Error: {str(e)}")
