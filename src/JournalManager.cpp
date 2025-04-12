@@ -26,6 +26,10 @@ namespace JournalManager {
         for (auto& [id, journalEntry] : Configuration::GetConfig()->journal_entries) {
             if (auto* quest = RE::TESForm::LookupByEditorID<RE::TESQuest>(journalEntry.quest)) {
                 quest->fullName = journalEntry.displayName;
+
+                // Try this...
+                // quest->data.questType.set(RE::QUEST_DATA::Type::kSideQuest)
+
                 Log("Set {} quest name to {}", quest->GetFormEditorID(), journalEntry.displayName.c_str());
                 auto objectiveIndex = 0;
                 for (auto& objective : journalEntry.objectives) {
