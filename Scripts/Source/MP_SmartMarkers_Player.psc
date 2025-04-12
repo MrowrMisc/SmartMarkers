@@ -16,7 +16,7 @@ function Initialize()
     RegisterForModEvent("MP_SmartMarkers_StopTrackingObject", "OnStopTrackingObjectReference")
 endFunction
 
-event OnTrackObjectReference(string eventName, string referenceAliasName, float _number, Form targetForm)
+event OnTrackObjectReference(string eventName, string referenceAliasName, float objectiveNumber, Form targetForm)
     ObjectReference target = targetForm as ObjectReference
     if target
         Debug.Trace("[SmartMarkers] " + eventName + ", " + referenceAliasName + ", target is " + target.GetFormID())
@@ -25,7 +25,7 @@ event OnTrackObjectReference(string eventName, string referenceAliasName, float 
     endIf
     
     _quest.SetActive(true)
-    _quest.SetObjectiveDisplayed(1, true)
+    _quest.SetObjectiveDisplayed(objectiveNumber as int, true)
     
     ReferenceAlias refAlias = _quest.GetAliasByName(referenceAliasName) as ReferenceAlias
     if refAlias && target

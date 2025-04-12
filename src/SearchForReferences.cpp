@@ -23,6 +23,11 @@ namespace SearchForReferences {
         collections_map<Configuration::Types::JournalEntryObjective*, MarkerDataForObjective> markerDataForObjectives;
 
         inline void TellPapyrusToTrackReference(RE::TESObjectREFR* ref, MarkerDataForObjective& markerDataForObjective) {
+            // For testing...
+            int objectiveNumber = 0;
+            if (markerDataForObjective.objective->name.contains("Container")) objectiveNumber = 1;
+            else if (markerDataForObjective.objective->name.contains("Body")) objectiveNumber = 2;
+
             if (markerDataForObjective.currentlyTrackingCount >= 50) {  // markerDataForObjective.objective....
                 Log("[{}] Already tracking max number of actors. Not tracking.", ref->GetName());
                 return;
@@ -30,9 +35,10 @@ namespace SearchForReferences {
             Debug("> [{}] Telling Papyrus to track reference '{}' {:x}", markerDataForObjective.objective->name, ref->GetName(), ref->GetFormID());
             markerDataForObjective.currentlyTrackingCount++;
             markerDataForObjective.trackedObjectRefsToIndexes[ref] = markerDataForObjective.currentlyTrackingCount;
-            auto& modEvent                                         = sentModEvents.emplace_back(
-                SKSE::ModCallbackEvent{SKSE_Callback_Event_Names::TRACK_ACTOR, std::format("Objective1_{}", markerDataForObjective.currentlyTrackingCount), 0.0f, ref}
-            );
+            auto& modEvent                                         = sentModEvents.emplace_back(SKSE::ModCallbackEvent{
+                SKSE_Callback_Event_Names::TRACK_ACTOR, std::format("Objective{}_{}", objectiveNumber, markerDataForObjective.currentlyTrackingCount),
+                static_cast<float>(objectiveNumber), ref
+            });
             SKSE::GetModCallbackEventSource()->SendEvent(&modEvent);
         }
 
@@ -73,9 +79,10 @@ namespace SearchForReferences {
 
     void DisallowObjectFromBeingMarked(RE::TESObjectREFR* ref, MarkerDataForObjective& markerDataForObjective) {
         if (ref) {
+            // Note: this will get large and should be cleaned up...
             markerDataForObjective.theseObjectsHaveBeenInteractedWith.insert(ref);
-            Log("~ [{}] Disallowing object from being marked", ref->GetName());
             if (markerDataForObjective.trackedObjectRefsToIndexes.find(ref) != markerDataForObjective.trackedObjectRefsToIndexes.end()) {
+                Log("~ [{}] Disallowing object from being marked", ref->GetName());
                 TellPapyrusToUntrackReference(ref, markerDataForObjective);
             }
         }
@@ -148,42 +155,14 @@ namespace SearchForReferences {
             if (ref == player) return RE::BSContainer::ForEachResult::kContinue;
             for (auto& [objective, markerData] : markerDataForObjectives) {
                 if (ReferenceMatchesObjective(ref, objective)) {
-                    Trace("Found reference '{}' {:x} matching objective '{}'", ref->GetName(), ref->GetFormID(), objective->name.c_str());
+                    Debug("Found reference '{}' {:x} matching objective '{}'", ref->GetName(), ref->GetFormID(), objective->name.c_str());
                     newlyDiscoveredNearbyObjectsToMark[&markerData].insert(ref);
-                    // TellPapyrusToTrackReference(ref, markerData);
+                    break;
                 }
             }
             return RE::BSContainer::ForEachResult::kContinue;
         });
         Debug("Searched {} references in range", searchedReferenceCount);
-
-        // for (auto& [objective, markerData] : markerDataForObjectives) {
-        //     auto found = newlyDiscoveredNearbyObjectsToMark.find(&markerData);
-        //     if (found == newlyDiscoveredNearbyObjectsToMark.end()) continue;
-        //     for (auto& ref : found->second) {
-        //         if (IsObjectDisallowed(ref, markerData)) continue;
-        //         if (markerData.currentlyMarkedNearbyObjects.find(ref) == markerData.currentlyMarkedNearbyObjects.end()) {
-        //             markerData.currentlyMarkedNearbyObjects.insert(ref);
-        //             Log(">> [{}] Tracking reference '{}'", markerData.objective->name.c_str(), ref->GetName());
-        //             TellPapyrusToTrackReference(ref, markerData);
-        //         }
-        //     }
-        // }
-
-        // for (auto& [objective, markerData] : markerDataForObjectives) {
-        //     auto found = newlyDiscoveredNearbyObjectsToMark.find(&markerData);
-        //     if (found == newlyDiscoveredNearbyObjectsToMark.end()) continue;
-        //     for (auto& ref : found->second) {
-        //         if (IsObjectDisallowed(ref, markerData)) continue;
-        //         if (markerData.currentlyMarkedNearbyObjects.find(ref) != markerData.currentlyMarkedNearbyObjects.end()) {
-        //             markerData.currentlyMarkedNearbyObjects.erase(ref);
-        //             Log(">> [{}] Untracking reference '{}'", markerData.objective->name.c_str(), ref->GetName());
-        //             TellPapyrusToUntrackReference(ref, markerData);
-        //         }
-        //     }
-        // }
-
-        // ...existing code...
 
         for (auto& [objective, markerData] : markerDataForObjectives) {
             auto found = newlyDiscoveredNearbyObjectsToMark.find(&markerData);
@@ -202,7 +181,8 @@ namespace SearchForReferences {
             // Untrack references that are no longer valid
             for (auto it = markerData.currentlyMarkedNearbyObjects.begin(); it != markerData.currentlyMarkedNearbyObjects.end();) {
                 auto& ref = *it;
-                if (found->second.find(ref) == found->second.end()) {
+                // Check if the reference still matches the objective
+                if (!ReferenceMatchesObjective(ref, markerData.objective)) {
                     it = markerData.currentlyMarkedNearbyObjects.erase(it);
                     Log(">> [{}] Untracking reference '{}'", markerData.objective->name.c_str(), ref->GetName());
                     TellPapyrusToUntrackReference(ref, markerData);

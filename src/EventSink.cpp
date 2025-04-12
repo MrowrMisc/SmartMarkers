@@ -50,7 +50,7 @@ RE::BSEventNotifyControl EventSink::ProcessEvent(const SKSE::CrosshairRefEvent* 
     if (event->crosshairRef) {
         if (auto* ref = event->crosshairRef->As<RE::TESObjectREFR>()) {
             mostRecentReferenceUnderCrosshair = ref;
-            Trace("CrosshairRef is a TESObjectREFR: {:x} {}", ref->GetFormID(), ref->GetFormEditorID());
+            Debug("CrosshairRef is a TESObjectREFR: {:x} {}", ref->GetFormID(), ref->GetFormEditorID());
             return RE::BSEventNotifyControl::kContinue;
         } else {
             Error("CrosshairRef is not a TESObjectREFR");
@@ -63,8 +63,7 @@ RE::BSEventNotifyControl EventSink::ProcessEvent(const SKSE::CrosshairRefEvent* 
 RE::BSEventNotifyControl EventSink::ProcessEvent(const RE::TESDeathEvent* event, RE::BSTEventSource<RE::TESDeathEvent>* eventSource) { return RE::BSEventNotifyControl::kContinue; }
 
 RE::BSEventNotifyControl EventSink::ProcessEvent(const RE::TESActivateEvent* event, RE::BSTEventSource<RE::TESActivateEvent>* eventSource) {
-    if (event->actionRef && event->actionRef->IsPlayerRef() && event->objectActivated)
-        if (auto* activatedActor = event->objectActivated->As<RE::Actor>()) SearchForReferences::DisallowObjectFromBeingMarked(activatedActor);
+    if (event->actionRef && event->actionRef->IsPlayerRef() && event->objectActivated) SearchForReferences::DisallowObjectFromBeingMarked(event->objectActivated.get());
     return RE::BSEventNotifyControl::kContinue;
 }
 

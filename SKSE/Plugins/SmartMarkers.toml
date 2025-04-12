@@ -7,14 +7,14 @@ objective_count = 20
 reference_aliases_per_objective = 100
 
 [[Journal.finding_things.objective]]
-name = "Body"
-form_type = "ACHR"
-is_dead = true
-
-[[Journal.finding_things.objective]]
 name = "Container"
 base_form_type = "CONT"
 non_empty_inventory = true
+
+[[Journal.finding_things.objective]]
+name = "Body"
+form_type = "ACHR"
+is_dead = true
 
 # [[Journal.finding_things.objective]]
 # name = "Keys"
