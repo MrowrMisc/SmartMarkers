@@ -4,9 +4,9 @@ import sys
 
 from esx_lib import (
     ESXTES4,
-    ESXAlias,
+    # ESXAlias, # No longer needed for manual creation
     ESXElement,
-    ESXObjective,
+    # ESXObjective, # No longer needed for manual creation
     ESXPlugin,
     ESXQuest,
     FormIDManager,
@@ -19,7 +19,7 @@ from esx_lib import (
 # Type 1: Miscellaneous Quests (Single Objective)
 MISC_QUEST_COUNT = 20
 MISC_OBJECTIVES_PER_QUEST = 1
-MISC_ALIASES_PER_OBJECTIVE = 50
+MISC_ALIASES_PER_OBJECTIVE = 30
 MISC_QUEST_TYPE = 6
 MISC_QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Misc_{quest_idx:02d}"
 MISC_QUEST_FULL_NAME_FORMAT = "Smart Markers Misc {quest_idx}"
@@ -27,9 +27,9 @@ MISC_OBJECTIVE_NAME_FORMAT = "Misc Objective {objective_index}"
 MISC_ALIAS_NAME_FORMAT = "Obj{objective_index}_Ref{target_idx}"
 
 # Type 2: Regular Quests (Single Objective)
-REG_SINGLE_QUEST_COUNT = 5
+REG_SINGLE_QUEST_COUNT = 4
 REG_SINGLE_OBJECTIVES_PER_QUEST = 1
-REG_SINGLE_ALIASES_PER_OBJECTIVE = 20
+REG_SINGLE_ALIASES_PER_OBJECTIVE = 15
 REG_SINGLE_QUEST_TYPE = 0
 REG_SINGLE_QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Regular_Single_{quest_idx:02d}"
 REG_SINGLE_QUEST_FULL_NAME_FORMAT = "Smart Markers Regular Single {quest_idx}"
@@ -37,13 +37,14 @@ REG_SINGLE_OBJECTIVE_NAME_FORMAT = "Reg Single Objective {objective_index}"
 REG_SINGLE_ALIAS_NAME_FORMAT = "Obj{objective_index}_Ref{target_idx}"
 
 # Type 3: Regular Quests (Multiple Objectives)
-REG_MULTI_QUEST_COUNT = 2
-REG_MULTI_OBJECTIVES_PER_QUEST = 20
-REG_MULTI_ALIASES_PER_OBJECTIVE = 20
+REG_MULTI_QUEST_COUNT = 4
+REG_MULTI_OBJECTIVES_PER_QUEST = 15
+REG_MULTI_ALIASES_PER_OBJECTIVE = 15
 REG_MULTI_QUEST_TYPE = 0
 REG_MULTI_QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Regular_Multiple_{quest_idx:02d}"
 REG_MULTI_QUEST_FULL_NAME_FORMAT = "Smart Markers Regular Multi {quest_idx}"
 REG_MULTI_OBJECTIVE_NAME_FORMAT = "Reg Multi Objective {objective_index}"
+# Corrected alias name format to include objective_index consistently
 REG_MULTI_ALIAS_NAME_FORMAT = "Obj{objective_index}_Ref{target_idx}"
 
 
@@ -109,7 +110,7 @@ def create_multi_quest_plugin(
     plugin.add_tes4(tes4)  # Add TES4 early, HEDR will be inserted
 
     # Set up form ID manager
-    form_manager = FormIDManager(0x800, 0xFFF)
+    form_manager = FormIDManager(0x800, 0xFFF)  # ESL range 0x800-0xFFF
 
     # Get a group for our quests with attributes
     grup_attrib = {
@@ -175,9 +176,10 @@ def create_multi_quest_plugin(
 
     # --- Loop 3: Regular Multi-Objective Quests ---
     print("\n--- Creating Regular Multi-Objective Quests ---")
-    for i in range(REG_MULTI_QUEST_COUNT):
+    for i in range(REG_MULTI_QUEST_COUNT):  # This loops REG_MULTI_QUEST_COUNT (4) times
         quest_global_index += 1
-        quest_idx = i + 1  # Index specific to this type
+        quest_idx = i + 1
+        # _create_quest_structure is called exactly ONCE per loop iteration
         quest, aliases_added = _create_quest_structure(
             form_manager,
             quest_idx,
@@ -257,10 +259,10 @@ def _create_quest_structure(
     quest_form_id_hex = f"{quest_form_id:08x}"
 
     # Create quest editor ID and name using formats
-    # Using quest_idx (per type) for naming, adjust if global index is preferred
     quest_name = quest_full_name_format.format(quest_idx=quest_idx)
     quest_editor_id = quest_editor_id_format.format(quest_idx=quest_idx)
 
+    # These print statements are executed once at the start of the function call
     print(f"  Creating quest {quest_idx}: {quest_name} (Global: {quest_global_index})")
     print(f"    Form ID: 0x{quest_form_id:x}, Type: {quest_type}")
 
@@ -276,79 +278,59 @@ def _create_quest_structure(
         "unknown": "0x0000",
     }
     quest = ESXQuest(tag="QUST", attrib=quest_attrib)
-    quest.editor_id = quest_editor_id  # Set editor_id property directly
+    # quest.editor_id = quest_editor_id # Not needed if EDID element is added manually
 
     # Add basic quest elements
     quest.append(ESXElement("EDID", text=quest_editor_id))
     quest.append(ESXElement("FULL", text=quest_name))
 
-    # Add DNAM element for quest type
+    # Add DNAM element for quest type with nested struct
     dnam = ESXElement("DNAM")
     dnam_struct_attrib = {
-        "flags": "0x0111",  # Example flags, adjust if needed
+        "flags": "0x0111",
         "priority": "0",
         "unknown0": "0xff",
         "unknown1": "0x00000000",
         "type": str(quest_type),
     }
-    dnam.append(ESXElement("struct", attrib=dnam_struct_attrib))
-    quest.append(dnam)
+    dnam.append(ESXElement("struct", attrib=dnam_struct_attrib))  # Nest struct
+    quest.append(dnam)  # Append parent DNAM
 
-    # Add player reference alias
+    # Add player reference alias manually
     player_ref_id = form_manager.allocate_next_id()
-    # print(f"    Added PlayerRef alias with form ID: 0x{player_ref_id:x}") # Verbose
-
-    # Create player ref alias elements
     quest.append(ESXElement("ALST", text=str(player_ref_id)))
     quest.append(ESXElement("ALID", text="PlayerRef"))
     quest.append(ESXElement("FNAM", text="0"))
-    quest.append(ESXElement("ALFR", text="00000014"))  # Player reference
+    quest.append(ESXElement("ALFR", text="00000014"))  # Player reference FormID
     quest.append(ESXElement("VTCK", text="00000000"))
-    quest.append(ESXElement("ALED"))
-
-    # Create an alias object and add it to quest
-    player_alias = ESXAlias(
-        index=player_ref_id, name="PlayerRef", flags="0", ref_id="00000014"
-    )
-    quest.add_alias(player_alias)
+    quest.append(ESXElement("ALED"))  # Empty element often needed as a terminator
     aliases_created_count += 1
 
     total_quest_aliases_expected = 1  # Start with PlayerRef
 
-    # Add objectives
+    # Add objectives manually
     for obj_idx in range(1, objectives_per_quest + 1):
         objective_index = obj_idx
-        # Create objective name using format
         objective_name = objective_name_format.format(
-            quest_name=quest_name, objective_index=objective_index
+            # Removed quest_name from format string as it wasn't used
+            objective_index=objective_index
         )
-        # print(f"    Adding objective {objective_index} with {aliases_per_objective} targets") # Verbose
 
         # Add objective elements
         quest.append(ESXElement("QOBJ", text=str(objective_index)))
         quest.append(ESXElement("FNAM", text="0"))  # FNAM for QOBJ
         quest.append(ESXElement("NNAM", text=objective_name))
 
-        # Create objective object
-        objective = ESXObjective(index=objective_index, name=objective_name)
-        quest.add_objective(objective)
-
-        # Track target IDs for reporting
-        target_ids = []
-        target_aliases = []
         total_quest_aliases_expected += aliases_per_objective
 
-        # Add target aliases for this objective
+        # Add target aliases for this objective manually
         for target_idx in range(1, aliases_per_objective + 1):
-            # Allocate a form ID for this target
             target_id = form_manager.allocate_next_id()
-            target_ids.append(target_id)
-
-            # Create alias name using format
+            # Use the passed alias_name_format, ensuring objective_index is available
             alias_name = alias_name_format.format(
-                quest_idx=quest_idx,
                 objective_index=objective_index,
                 target_idx=target_idx,
+                # quest_idx=quest_idx # Add if needed by format string
             )
 
             # Add alias elements
@@ -356,41 +338,30 @@ def _create_quest_structure(
             quest.append(ESXElement("ALID", text=alias_name))
             quest.append(ESXElement("FNAM", text="4242"))  # FNAM for ALST
             quest.append(ESXElement("VTCK", text="00000000"))
-            quest.append(ESXElement("ALED"))
+            quest.append(ESXElement("ALED"))  # Terminator for alias definition
 
-            # Add QSTA (target data) element for this alias
+            # Add QSTA (target data) element with nested struct
             qsta = ESXElement("QSTA")
-            struct = ESXElement(
-                "struct", attrib={"alias": str(target_id), "flags": "0x00000000"}
-            )
-            qsta.append(struct)
-            quest.append(qsta)
+            qsta_struct_attrib = {"alias": str(target_id), "flags": "0x00000000"}
+            qsta.append(ESXElement("struct", attrib=qsta_struct_attrib))  # Nest struct
+            quest.append(qsta)  # Append parent QSTA
 
-            # Revert CTDA creation to use nested elements
-            param1_hex = f"0x{target_id:08x}"
+            # Add CTDA (condition) element with nested elements
+            param1_hex = f"0x{target_id:08x}"  # Use correct alias FormID
             ctda = ESXElement("CTDA")
             ctda.append(ESXElement("operator", text="0x00"))
             ctda.append(ESXElement("unknown0", text="0x00,0x00,0x00"))
             ctda.append(ESXElement("comparisonValueFloat", text="1.0"))
-            ctda.append(ESXElement("functionIndex", text="566"))
+            ctda.append(ESXElement("functionIndex", text="566"))  # GetIsAliasRef
             ctda.append(ESXElement("padding", text="0x00,0x00"))
-            ctda.append(ESXElement("param1", text=param1_hex))
+            ctda.append(ESXElement("param1", text=param1_hex))  # Alias FormID
             ctda.append(ESXElement("param2", text="0x00000000"))
-            ctda.append(ESXElement("runOnType", text="0"))
-            ctda.append(ESXElement("reference", text="00000000"))
+            ctda.append(ESXElement("runOnType", text="0"))  # Subject
+            ctda.append(ESXElement("reference", text="00000000"))  # Invalid ref
             ctda.append(ESXElement("unknown1", text="0xffffffff"))
-            quest.append(ctda)
+            quest.append(ctda)  # Append parent CTDA
 
-            # Create alias object
-            alias = ESXAlias(index=target_id, name=alias_name, flags="4242")
-            quest.add_alias(alias)
-            target_aliases.append(alias)
             aliases_created_count += 1
-
-        # Report on created targets for this objective (optional, can be verbose)
-        # if target_ids:
-        #     print(f"      Objective {objective_index} Target ID range: 0x{target_ids[0]:x} - 0x{target_ids[-1]:x}")
-        #     print(f"      First few aliases: {[a.name for a in target_aliases[:5]]}")
 
     # Add alias count element (ANAM)
     quest.append(ESXElement("ANAM", text=str(total_quest_aliases_expected)))
