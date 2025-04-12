@@ -14,6 +14,19 @@ from esx_lib import (
     write_plugin_to_xml,
 )
 
+# Naming format constants
+QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_{quest_idx:02d}"
+QUEST_FULL_NAME_FORMAT = "Smart Markers {quest_idx}"
+OBJECTIVE_NAME_FORMAT = "Objective {objective_index}"
+ALIAS_NAME_FORMAT = "Quest{quest_idx}_Objective{objective_index}_Reference{target_idx}"
+QUEST_TYPE = 0  # Regular quest
+
+# QUEST_EDITOR_ID_FORMAT = "MP_SmartMarkers_Misc_{quest_idx:02d}"
+# QUEST_FULL_NAME_FORMAT = "Smart Markers Misc {quest_idx}"
+# OBJECTIVE_NAME_FORMAT = "Objective {objective_index}"
+# ALIAS_NAME_FORMAT = "Quest{quest_idx}_Objective{objective_index}_Reference{target_idx}"
+# QUEST_TYPE = 6  # Miscellaneous quest type
+
 
 def create_multi_quest_plugin(
     output_file: str,
@@ -96,9 +109,9 @@ def create_multi_quest_plugin(
         quest_form_id = form_manager.allocate_next_id()
         quest_form_id_hex = f"{quest_form_id:08x}"
 
-        # Create quest editor ID and name
-        quest_name = f"MultiQuest {quest_idx}"
-        quest_editor_id = f"SM_MultiQuest_{quest_idx:02d}"
+        # Create quest editor ID and name using formats
+        quest_name = QUEST_FULL_NAME_FORMAT.format(quest_idx=quest_idx)
+        quest_editor_id = QUEST_EDITOR_ID_FORMAT.format(quest_idx=quest_idx)
 
         print(f"\nCreating quest {quest_idx}/{num_quests}: {quest_name}")
         print(f"  Form ID: 0x{quest_form_id:x}")
@@ -120,6 +133,18 @@ def create_multi_quest_plugin(
         # Add basic quest elements
         quest.append(ESXElement("EDID", text=quest_editor_id))
         quest.append(ESXElement("FULL", text=quest_name))
+
+        # Add DNAM element for quest type (6 = Miscellaneous)
+        dnam = ESXElement("DNAM")
+        dnam_struct_attrib = {
+            "flags": "0x0111",  # Example flags, adjust if needed
+            "priority": "0",
+            "unknown0": "0xff",
+            "unknown1": "0x00000000",
+            "type": str(QUEST_TYPE),  # Set quest type to Miscellaneous
+        }
+        dnam.append(ESXElement("struct", attrib=dnam_struct_attrib))
+        quest.append(dnam)
 
         # Add quest to group
         quest_group.add_record(quest)
@@ -146,7 +171,10 @@ def create_multi_quest_plugin(
 
         # Add one objective
         objective_index = 1
-        objective_name = f"Objective for {quest_name}"
+        # Create objective name using format
+        objective_name = OBJECTIVE_NAME_FORMAT.format(
+            quest_name=quest_name, objective_index=objective_index
+        )
         print(
             f"  Adding objective {objective_index} with {aliases_per_objective} targets"
         )
@@ -170,8 +198,12 @@ def create_multi_quest_plugin(
             target_id = form_manager.allocate_next_id()
             target_ids.append(target_id)
 
-            # Create alias name
-            alias_name = f"Q{quest_idx}_Obj{objective_index}_Target{target_idx}"
+            # Create alias name using format
+            alias_name = ALIAS_NAME_FORMAT.format(
+                quest_idx=quest_idx,
+                objective_index=objective_index,
+                target_idx=target_idx,
+            )
 
             # Add alias elements
             quest.append(ESXElement("ALST", text=str(target_id)))
