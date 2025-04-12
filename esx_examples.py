@@ -151,8 +151,12 @@ def quest_builder_example() -> None:
             print(f"  Error: {error}")
 
     # Check ESL compatibility
-    result = validate_esl_compatibility(plugin)
-    print(f"\nESL compatible: {result}")
+    is_compatible, form_count, esl_errors = validate_esl_compatibility(plugin)
+    print(f"\nESL compatible: {is_compatible}")
+    print(f"Form ID count: {form_count}")
+    if not is_compatible and esl_errors:
+        for error in esl_errors:
+            print(f"  Error: {error}")
 
     # Write the plugin to XML
     output_file = "example_quest.xml"
